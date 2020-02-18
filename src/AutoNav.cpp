@@ -38,21 +38,52 @@ bool autodrive::init()
 
 void autodrive::laserMsgCallBack(const sensor_msgs::LaserScan::ConstPtr &msg)
 {
-    
-   
+    //Get the ranges
+    Scan_data[0] = msg->ranges.at(270);
+    Scan_data[1] = msg->ranges.at(315);
+    Scan_data[2] = msg->ranges.at(0);
+    Scan_data[3] = msg->ranges.at(45);
+    Scan_data[4] = msg->ranges.at(90);
+
+    for(int i = 0; i < 5; i++){ // ensure there is no infinite ranges
+        if(std::isinf(Scan_data[i])){ Scan_data[i] = 100;}
+    }
 }
+
+
 
 void autodrive::odomMsgCallBack(const nav_msgs::Odometry::ConstPtr &msg)
 {
-    //ROS_INFO("x: %f", msg->twist.twist.angular.x);
-   //cout << "beep"<< endl;
-    //cout << "Z: " << msg->twist.twist.angular.z << endl;
-  Linear_velocity = msg->twist.twist.linear.x;
-  //Angular_velocity = msg->twist.twist.angular.z;
-  cout << Linear_velocity << endl;
+    Prev_timestamp = Current_timestamp;
+    Current_timestamp = msg->header.stamp.nsec;
+
+    Linear_velocity_prev = Linear_velocity;
+    Linear_velocity = msg->twist.twist.linear.x;
+
+    Angular_velocity_prev = Angular_velocity;
+    Angular_velocity = msg->twist.twist.angular.z;
+
+    Timeslice = Current_timestamp - Prev_timestamp;
+
+    Linear_acceleration = (Linear_velocity - Linear_velocity_prev) / Timeslice;
+
+    Angular_acceleration = (Angular_velocity - Angular_velocity_prev) / Timeslice;
+
+    cout << "Linear acceleration: " << Linear_acceleration << endl;
+    cout << "Angular acceleration: " << Angular_acceleration << endl;
 }
 
 
+
+void autodrive::publishVelocity(double Linear, double Angular)
+{
+    nav_msgs::Odometry msg; // Set message format
+
+    msg.twist.twist.linear.x = Linear; //Set linear velocity
+    msg.twist.twist.angular.z = Angular; //Set Angular velocity
+
+    cmd_vel_pub_.publish(msg); // Publish message
+}
 
 
 
@@ -60,12 +91,12 @@ bool autodrive::controlloop()
 {
  
 
-return true;
+    return true;
 }
 
 void autodrive::debug() // Testing function
 {
-    //cout <<Linear_velocity << endl;
+    
 }
 
 
@@ -74,7 +105,7 @@ int main(int argc, char **argv){
     ros::init(argc, argv, "autodrive_node");
 
    autodrive controller;
-   ros::Rate loop_rate(10);
+   ros::Rate loop_rate(60);
    controller.init();
    
     while(ros::ok())
@@ -82,8 +113,9 @@ int main(int argc, char **argv){
         controller.controlloop();
         controller.debug();
      
-        loop_rate.sleep();
         ros::spin();
+        loop_rate.sleep();
+        
     }
 
    
