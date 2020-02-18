@@ -131,9 +131,9 @@ bool autodrive::controlloop()
     loopAllowableVelocities(allowable_W[0], allowable_W[1], allowableRangeAngular);
     
     // for each v in allowable_V
-    for(int i = 0; i <= allowableRangeLinear.size(); i++){
+    for(int i = 0; i < allowableRangeLinear.size() + 1; i++){
         // for each w in allowable_W
-        for(int j = 0; j <= allowableRangeAngular.size(); j++){
+        for(int j = 0; j < allowableRangeAngular.size() + 1; j++){
             float dist = findDist(allowableRangeLinear.at(i), allowableRangeAngular.at(j), scan_data_);
            /* breakDist = calculateBrakingDistance(v)
             if(dist > breakDist)
@@ -144,7 +144,7 @@ bool autodrive::controlloop()
                     best_v = v
                     best_w = w
                     optimal = cost*/
-                    cout << "Tick" << endl;
+                    
         }
     }
     // set robot trajectory to best_v & best_w
@@ -187,6 +187,7 @@ int main(int argc, char **argv){
         //controller.debug();
         
         loop_rate.sleep();
+	ros::spin();
     }
 
    
