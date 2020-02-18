@@ -43,7 +43,8 @@ class autodrive{
         ros::Subscriber odom_sub_;
 
         // Variables
-       
+        double Linear_velocity;
+        double Angular_velocity;
 
         void laserMsgCallBack(const sensor_msgs::LaserScan::ConstPtr& msg);
         void odomMsgCallBack(const nav_msgs::Odometry::ConstPtr& msg);

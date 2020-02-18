@@ -2,6 +2,9 @@
 #include <iostream>
 using namespace std;
 
+//Test command: roslaunch turtlebot3_gazebo turtlebot3_simulation.launch
+
+
 //Node constructor
 autodrive::autodrive()
 {
@@ -26,7 +29,7 @@ bool autodrive::init()
     cmd_vel_pub_ = nh_.advertise<nav_msgs::Odometry>("cmd_vel_pub_", 100);
 
     //Initialise subscriptions
-    laser_scan_sub_ = nh_.subscribe("scan",10, &autodrive::laserMsgCallBack, this); // Subscribe to LiDAR
+    laser_scan_sub_ = nh_.subscribe("scan",100, &autodrive::laserMsgCallBack, this); // Subscribe to LiDAR
     odom_sub_ = nh_.subscribe("odom", 100, &autodrive::odomMsgCallBack, this); // Subscribe to odometry
 
 
@@ -41,7 +44,12 @@ void autodrive::laserMsgCallBack(const sensor_msgs::LaserScan::ConstPtr &msg)
 
 void autodrive::odomMsgCallBack(const nav_msgs::Odometry::ConstPtr &msg)
 {
-  
+    //ROS_INFO("x: %f", msg->twist.twist.angular.x);
+   //cout << "beep"<< endl;
+    //cout << "Z: " << msg->twist.twist.angular.z << endl;
+  Linear_velocity = msg->twist.twist.linear.x;
+  //Angular_velocity = msg->twist.twist.angular.z;
+  cout << Linear_velocity << endl;
 }
 
 
@@ -53,13 +61,11 @@ bool autodrive::controlloop()
  
 
 return true;
-    
-
 }
 
 void autodrive::debug() // Testing function
 {
-    
+    //cout <<Linear_velocity << endl;
 }
 
 
@@ -74,9 +80,10 @@ int main(int argc, char **argv){
     while(ros::ok())
     {
         controller.controlloop();
-        //controller.debug();
-        
+        controller.debug();
+     
         loop_rate.sleep();
+        ros::spin();
     }
 
    
