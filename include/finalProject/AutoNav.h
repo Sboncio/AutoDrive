@@ -31,6 +31,8 @@ class autodrive{
         bool controlloop();
         void debug();
        
+        
+
     private:
         //Node Handler
         ros::NodeHandle nh_;
@@ -61,7 +63,8 @@ class autodrive{
         void laserMsgCallBack(const sensor_msgs::LaserScan::ConstPtr& msg);
         void odomMsgCallBack(const nav_msgs::Odometry::ConstPtr& msg);
 
+        
         void publishVelocity(double Linear, double Angular);
-   
+
 };
 #endif

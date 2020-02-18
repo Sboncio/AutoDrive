@@ -26,7 +26,7 @@ bool autodrive::init()
 
     
     //Initialise publishers
-    cmd_vel_pub_ = nh_.advertise<nav_msgs::Odometry>("cmd_vel_pub_", 100);
+    cmd_vel_pub_ = nh_.advertise<geometry_msgs::Twist>("cmd_vel", 100);
 
     //Initialise subscriptions
     laser_scan_sub_ = nh_.subscribe("scan",100, &autodrive::laserMsgCallBack, this); // Subscribe to LiDAR
@@ -69,20 +69,18 @@ void autodrive::odomMsgCallBack(const nav_msgs::Odometry::ConstPtr &msg)
 
     Angular_acceleration = (Angular_velocity - Angular_velocity_prev) / Timeslice;
 
-    cout << "Linear acceleration: " << Linear_acceleration << endl;
-    cout << "Angular acceleration: " << Angular_acceleration << endl;
 }
-
-
 
 void autodrive::publishVelocity(double Linear, double Angular)
 {
-    nav_msgs::Odometry msg; // Set message format
+    geometry_msgs::Twist cmd_vel; // Set message format
 
-    msg.twist.twist.linear.x = Linear; //Set linear velocity
-    msg.twist.twist.angular.z = Angular; //Set Angular velocity
+    cmd_vel.linear.x = Linear; //Set linear velocity
+    cmd_vel.angular.z = Angular; //Set Angular velocity
 
-    cmd_vel_pub_.publish(msg); // Publish message
+    cout << cmd_vel.linear.x << endl;
+
+    cmd_vel_pub_.publish(cmd_vel); // Publish message
 }
 
 
@@ -90,13 +88,13 @@ void autodrive::publishVelocity(double Linear, double Angular)
 bool autodrive::controlloop()
 {
  
-
+    publishVelocity(0.1, 0.0);
     return true;
 }
 
 void autodrive::debug() // Testing function
 {
-    
+   
 }
 
 
@@ -104,17 +102,19 @@ int main(int argc, char **argv){
 
     ros::init(argc, argv, "autodrive_node");
 
-   autodrive controller;
-   ros::Rate loop_rate(60);
-   controller.init();
+    autodrive controller;
+    ros::Rate loop_rate(10);
+    controller.init();
    
     while(ros::ok())
     {
         controller.controlloop();
         controller.debug();
-     
-        ros::spin();
+        
+
         loop_rate.sleep();
+        ros::spinOnce();
+        
         
     }
 
