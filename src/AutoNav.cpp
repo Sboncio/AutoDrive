@@ -6,9 +6,7 @@ using namespace std;
 autodrive::autodrive()
 {
     ROS_INFO("Final Year Project");
-        //Initialise subscriptions
-    //laser_scan_sub_ = nh_.subscribe("scan",10, &autodrive::laserMsgCallBack, this);
-    //odom_sub_ = nh_.subscribe("scan", 100, &autodrive::odomMsgCallBack, this);
+    
 }
 
 //Node destructor
@@ -47,6 +45,7 @@ bool autodrive::init()
     laser_scan_sub_ = nh_.subscribe("scan",10, &autodrive::laserMsgCallBack, this); // Subscribe to LiDAR
     odom_sub_ = nh_.subscribe("odom", 100, &autodrive::odomMsgCallBack, this); // Subscribe to odometry
 
+
     return true;
 }
 
@@ -64,6 +63,8 @@ void autodrive::laserMsgCallBack(const sensor_msgs::LaserScan::ConstPtr &msg)
 
 void autodrive::odomMsgCallBack(const nav_msgs::Odometry::ConstPtr &msg)
 {
+    prev_linear_velocity = linear_velocity;
+    prev_angular_velocity = angular_velocity;
     linear_velocity = msg->twist.twist.linear.x; //Get the linear velocity
     angular_velocity = msg->twist.twist.angular.z; // Get the angular velocity
 
@@ -71,6 +72,9 @@ void autodrive::odomMsgCallBack(const nav_msgs::Odometry::ConstPtr &msg)
     current_Time = ros::Time::now();
     Time_Difference = current_Time - previous_Time;
     TimeSlice = Time_Difference.toSec();
+
+    linear_acceleration = (linear_velocity - prev_linear_velocity) / TimeSlice;
+    angular_acceleration = (angular_velocity - prev_angular_velocity) / TimeSlice;
 }
 
 float autodrive::allowableMax(double currentVelocity, double acceleration) // Get the maximum allowable velocity
@@ -101,7 +105,7 @@ float autodrive::findDist(float Linear, float Angular, std::vector<double> scan_
 float autodrive::calculateBrakingDistance(float velocity)
 {
     
-
+    
 
 }
 
@@ -109,7 +113,7 @@ float autodrive::calculateBrakingDistance(float velocity)
 
 bool autodrive::controlloop()
 {
-    int Desired_V = LINEAR_VELOCITY;
+    int Desired_V = 0.20;
 
      previous_Time = current_Time;
     current_Time = ros::Time::now();
@@ -118,18 +122,18 @@ bool autodrive::controlloop()
     // scan_data_
 
     // Got allowable velocities
-    allowable_V[0] = allowableMin(linear_velocity, ACCELERATION);
-    allowable_V[1] = allowableMax(linear_velocity, ACCELERATION);
-    allowable_W[0] = allowableMin(angular_velocity, ACCELERATION);
-    allowable_W[1] = allowableMax(angular_velocity, ACCELERATION);
+    allowable_V[0] = allowableMin(linear_velocity, linear_acceleration);
+    allowable_V[1] = allowableMax(linear_velocity, linear_acceleration);
+    allowable_W[0] = allowableMin(angular_velocity, angular_acceleration);
+    allowable_W[1] = allowableMax(angular_velocity, angular_acceleration);
 
     loopAllowableVelocities(allowable_V[0], allowable_V[1], allowableRangeLinear);
     loopAllowableVelocities(allowable_W[0], allowable_W[1], allowableRangeAngular);
     
     // for each v in allowable_V
-    for(int i = 0; i <= allowableRangeLinear.size() + 1; i++){
+    for(int i = 0; i <= allowableRangeLinear.size(); i++){
         // for each w in allowable_W
-        for(int j = 0; j <= allowableRangeAngular.size() +1; j++){
+        for(int j = 0; j <= allowableRangeAngular.size(); j++){
             float dist = findDist(allowableRangeLinear.at(i), allowableRangeAngular.at(j), scan_data_);
            /* breakDist = calculateBrakingDistance(v)
             if(dist > breakDist)
@@ -140,6 +144,7 @@ bool autodrive::controlloop()
                     best_v = v
                     best_w = w
                     optimal = cost*/
+                    cout << "Tick" << endl;
         }
     }
     // set robot trajectory to best_v & best_w
@@ -178,7 +183,7 @@ int main(int argc, char **argv){
    
     while(ros::ok())
     {
-        //controller.controlloop();
+        controller.controlloop();
         //controller.debug();
         
         loop_rate.sleep();
