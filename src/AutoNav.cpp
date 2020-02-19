@@ -71,6 +71,9 @@ void autodrive::odomMsgCallBack(const nav_msgs::Odometry::ConstPtr &msg)
 
     Timeslice = Current_timestamp - Prev_timestamp;
 
+    cout << "X: " << msg->pose.pose.position.x << endl;
+    cout << "Y: " << msg->pose.pose.position.y << endl;
+
     Linear_acceleration = (Linear_velocity - Linear_velocity_prev) / Timeslice;
 
     Angular_acceleration = (Angular_velocity - Angular_velocity_prev) / Timeslice;
@@ -83,8 +86,6 @@ void autodrive::publishVelocity(double Linear, double Angular)
 
     cmd_vel.linear.x = Linear; //Set linear velocity
     cmd_vel.angular.z = Angular; //Set Angular velocity
-
-    cout << cmd_vel.linear.x << endl;
 
     cmd_vel_pub_.publish(cmd_vel); // Publish message
 }
@@ -120,7 +121,7 @@ bool autodrive::controlloop()
 
 void autodrive::debug() // Testing function
 {
-    cout << calculateStoppingDistance(Linear_velocity, Linear_acceleration) << endl;
+    
 }
 
 
