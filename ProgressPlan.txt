@@ -25,3 +25,6 @@ Step 2 - Mathematics
 
 - Be able to get the braking distance of the turtlebot
 
+- Calculate distance to nearest object on specific trajectory
+
+
