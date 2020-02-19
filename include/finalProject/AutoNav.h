@@ -49,6 +49,7 @@ class autodrive{
         double Linear_velocity_prev;
         double Linear_velocity;
         double Linear_acceleration;
+        std::vector<double> Linear_velocity_allowable;
 
         double Angular_velocity_prev;
         double Angular_velocity;
@@ -58,13 +59,15 @@ class autodrive{
         double Prev_timestamp;
         double Timeslice;
 
-        double Scan_data[5];
+        std::vector<double> Scan_data;
 
         void laserMsgCallBack(const sensor_msgs::LaserScan::ConstPtr& msg);
         void odomMsgCallBack(const nav_msgs::Odometry::ConstPtr& msg);
 
         
         void publishVelocity(double Linear, double Angular);
+
+        void loopAllowableVelocities(double velocity, double acceleration, std::vector<double> &AllowableVelocities);
 
 };
 #endif

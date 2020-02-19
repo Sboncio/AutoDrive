@@ -39,14 +39,20 @@ bool autodrive::init()
 void autodrive::laserMsgCallBack(const sensor_msgs::LaserScan::ConstPtr &msg)
 {
     //Get the ranges
-    Scan_data[0] = msg->ranges.at(270);
-    Scan_data[1] = msg->ranges.at(315);
-    Scan_data[2] = msg->ranges.at(0);
-    Scan_data[3] = msg->ranges.at(45);
-    Scan_data[4] = msg->ranges.at(90);
+    if(!Scan_data.empty()){
+        Scan_data.clear();
+    }
+
+    for(int i = 270; i <360; i++){
+        Scan_data.push_back(msg->ranges.at(i));
+    }
+
+    for(int i = 0; i <90; i++){
+        Scan_data.push_back(msg->ranges.at(i));
+    }
 
     for(int i = 0; i < 5; i++){ // ensure there is no infinite ranges
-        if(std::isinf(Scan_data[i])){ Scan_data[i] = 100;}
+        if(std::isinf(Scan_data.at(i))){ Scan_data.at(i) = 100;}
     }
 }
 
@@ -84,17 +90,32 @@ void autodrive::publishVelocity(double Linear, double Angular)
 }
 
 
+void autodrive::loopAllowableVelocities(double velocity, double acceleration, std::vector<double> &AllowableVelocities)
+{
+    if(!AllowableVelocities.empty()){
+        AllowableVelocities.clear();
+    }
+
+    double minimum = velocity - (acceleration * Timeslice);
+    double maximum = velocity + (acceleration * Timeslice);
+
+    for(double i = minimum; i<= maximum; i += 0.001){
+        AllowableVelocities.push_back(i);
+    }
+
+}
+
+
 
 bool autodrive::controlloop()
 {
  
-    publishVelocity(0.1, 0.0);
     return true;
 }
 
 void autodrive::debug() // Testing function
 {
-   
+ 
 }
 
 
