@@ -105,6 +105,11 @@ void autodrive::loopAllowableVelocities(double velocity, double acceleration, st
 
 }
 
+double autodrive::calculateStoppingDistance(double velocity, double acceleration)
+{
+    double Distance = ((velocity * velocity) / (2 * acceleration));
+    return Distance;
+}
 
 
 bool autodrive::controlloop()
@@ -115,7 +120,7 @@ bool autodrive::controlloop()
 
 void autodrive::debug() // Testing function
 {
- 
+    cout << calculateStoppingDistance(Linear_velocity, Linear_acceleration) << endl;
 }
 
 

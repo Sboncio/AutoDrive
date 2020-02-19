@@ -69,5 +69,7 @@ class autodrive{
 
         void loopAllowableVelocities(double velocity, double acceleration, std::vector<double> &AllowableVelocities);
 
+        double calculateStoppingDistance(double velocity, double acceleration);
+
 };
 #endif
