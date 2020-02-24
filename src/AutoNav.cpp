@@ -71,8 +71,8 @@ void autodrive::odomMsgCallBack(const nav_msgs::Odometry::ConstPtr &msg)
 
     Timeslice = Current_timestamp - Prev_timestamp;
 
-    cout << "X: " << msg->pose.pose.position.x << endl;
-    cout << "Y: " << msg->pose.pose.position.y << endl;
+    Position_X = msg->pose.pose.position.x;
+    Position_Y = msg->pose.pose.position.y;
 
     Linear_acceleration = (Linear_velocity - Linear_velocity_prev) / Timeslice;
 

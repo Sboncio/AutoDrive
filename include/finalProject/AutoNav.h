@@ -54,6 +54,10 @@ class autodrive{
         double Angular_velocity_prev;
         double Angular_velocity;
         double Angular_acceleration;
+        std::vector<double> Angular_velocity_allowable;
+
+        float Position_X;
+        float Position_Y;
 
         double Current_timestamp;
         double Prev_timestamp;
