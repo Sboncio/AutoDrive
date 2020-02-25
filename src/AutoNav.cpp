@@ -74,6 +74,25 @@ void autodrive::odomMsgCallBack(const nav_msgs::Odometry::ConstPtr &msg)
     Position_X = msg->pose.pose.position.x;
     Position_Y = msg->pose.pose.position.y;
 
+    double quat0 = msg->pose.pose.orientation.w;
+    double quat1 = msg->pose.pose.orientation.y;
+    double quat2 = msg->pose.pose.orientation.x;
+    double quat3 = msg->pose.pose.orientation.z;
+    Orientation = atan2(2 * (quat0 * quat3 + quat1 * quat2), 1 - 2 * ((quat2 * quat2) + (quat3 * quat3)));
+    Orientation = Orientation * (180/M_PI);
+    if(Orientation < 0) {
+        Orientation += 360.0;
+    } 
+    if(Orientation > 180){
+        Orientation -= 180;
+        double temp = 90 - Orientation;
+        Orientation = temp + 90;
+    } else if (Orientation < 180) {
+        double temp = 180 - Orientation;
+        Orientation = Orientation + (temp * 2);
+    }
+
+
     Linear_acceleration = (Linear_velocity - Linear_velocity_prev) / Timeslice;
 
     Angular_acceleration = (Angular_velocity - Angular_velocity_prev) / Timeslice;
@@ -113,6 +132,22 @@ double autodrive::calculateStoppingDistance(double velocity, double acceleration
 }
 
 
+double autodrive::calculateAngle(double linear, double angular)
+{
+
+    float x_pos = Position_X - (linear/angular) * sin(Orientation);
+    float y_pos = Position_Y + (linear/angular) * cos(Orientation);
+
+    float temp_Orientation = Orientation + (angular * Timeslice);
+    float temp_x_pos = x_pos + (linear/angular) * sin(temp_Orientation);
+    float temp_y_pos = y_pos - (linear/angular) * cos(temp_Orientation);
+
+    double rotation = atan2(temp_y_pos - y_pos, temp_x_pos - x_pos);
+
+    cout << rotation << endl;
+
+}
+
 bool autodrive::controlloop()
 {
  
@@ -121,7 +156,16 @@ bool autodrive::controlloop()
 
 void autodrive::debug() // Testing function
 {
-    
+    loopAllowableVelocities(Linear_velocity, Linear_acceleration, Linear_velocity_allowable);
+    loopAllowableVelocities(Angular_velocity, Angular_acceleration, Angular_velocity_allowable);
+
+    for(int i = 0; i < Linear_velocity_allowable.size(); i++){
+        for(int j = 0; j < Angular_velocity_allowable.size(); j++){
+
+            //calculateAngle(Linear_velocity_allowable.at(1), Angular_velocity_allowable.at(j));
+            calculateAngle(Linear_velocity_allowable.at(i),Angular_velocity_allowable.at(j));
+        }
+    }
 }
 
 

@@ -4,6 +4,7 @@
 #include <ros/ros.h>
 #include <chrono>
 #include <vector>
+#include <math.h>
 
 #include <sensor_msgs/LaserScan.h>
 #include <geometry_msgs/Twist.h>
@@ -58,12 +59,16 @@ class autodrive{
 
         float Position_X;
         float Position_Y;
+        float Orientation;
+
 
         double Current_timestamp;
         double Prev_timestamp;
         double Timeslice;
 
         std::vector<double> Scan_data;
+
+        double goalPose[3];
 
         void laserMsgCallBack(const sensor_msgs::LaserScan::ConstPtr& msg);
         void odomMsgCallBack(const nav_msgs::Odometry::ConstPtr& msg);
@@ -74,6 +79,8 @@ class autodrive{
         void loopAllowableVelocities(double velocity, double acceleration, std::vector<double> &AllowableVelocities);
 
         double calculateStoppingDistance(double velocity, double acceleration);
+
+        double calculateAngle(double linear, double angular);
 
 };
 #endif
