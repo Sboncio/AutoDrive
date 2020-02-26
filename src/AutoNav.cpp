@@ -43,43 +43,52 @@ void autodrive::laserMsgCallBack(const sensor_msgs::LaserScan::ConstPtr &msg)
         Scan_data.clear();
     }
 
-    for(int i = 270; i <360; i++){
+    for(int i = 90; i > 0; i--){
         Scan_data.push_back(msg->ranges.at(i));
     }
 
-    for(int i = 0; i <90; i++){
+    for(int i = 359; i > 270; i--){
         Scan_data.push_back(msg->ranges.at(i));
     }
 
+    
     for(int i = 0; i < 5; i++){ // ensure there is no infinite ranges
         if(std::isinf(Scan_data.at(i))){ Scan_data.at(i) = 100;}
     }
+
 }
 
 
 
 void autodrive::odomMsgCallBack(const nav_msgs::Odometry::ConstPtr &msg)
 {
-    Prev_timestamp = Current_timestamp;
-    Current_timestamp = msg->header.stamp.nsec;
+    Prev_timestamp = Current_timestamp; //Need to potentially remove
+    Current_timestamp = msg->header.stamp.nsec; //Need to potentially remove
 
-    Linear_velocity_prev = Linear_velocity;
-    Linear_velocity = msg->twist.twist.linear.x;
+    Linear_velocity_prev = Linear_velocity; //Set previous linear velocity
+    Linear_velocity = msg->twist.twist.linear.x; // Retrieve current linear velocity
 
-    Angular_velocity_prev = Angular_velocity;
-    Angular_velocity = msg->twist.twist.angular.z;
+    Angular_velocity_prev = Angular_velocity; // Set previous angular velocity
+    Angular_velocity = msg->twist.twist.angular.z; // retrieve current angular velocity
 
-    Timeslice = Current_timestamp - Prev_timestamp;
+    Timeslice = 1; //Set timeslice to 1 second
 
-    Position_X = msg->pose.pose.position.x;
-    Position_Y = msg->pose.pose.position.y;
+    Position_X = msg->pose.pose.position.x; // Get the x position
+    Position_Y = msg->pose.pose.position.y; // Get the y position
 
-    double quat0 = msg->pose.pose.orientation.w;
+    //Retrieve quaternion values
+    double quat0 = msg->pose.pose.orientation.w; 
     double quat1 = msg->pose.pose.orientation.y;
     double quat2 = msg->pose.pose.orientation.x;
     double quat3 = msg->pose.pose.orientation.z;
+
+    // Convert quaternion values to euler values
     Orientation = atan2(2 * (quat0 * quat3 + quat1 * quat2), 1 - 2 * ((quat2 * quat2) + (quat3 * quat3)));
+
+    // Convert the euler radians to degrees
     Orientation = Orientation * (180/M_PI);
+
+    // Re-orientate the angles to a simpler format 
     if(Orientation < 0) {
         Orientation += 360.0;
     } 
@@ -92,9 +101,10 @@ void autodrive::odomMsgCallBack(const nav_msgs::Odometry::ConstPtr &msg)
         Orientation = Orientation + (temp * 2);
     }
 
-
+    // Calculate the linear acceleration
     Linear_acceleration = (Linear_velocity - Linear_velocity_prev) / Timeslice;
 
+    // Calculate the angular acceleration
     Angular_acceleration = (Angular_velocity - Angular_velocity_prev) / Timeslice;
 
 }
@@ -112,22 +122,22 @@ void autodrive::publishVelocity(double Linear, double Angular)
 
 void autodrive::loopAllowableVelocities(double velocity, double acceleration, std::vector<double> &AllowableVelocities)
 {
-    if(!AllowableVelocities.empty()){
-        AllowableVelocities.clear();
+    if(!AllowableVelocities.empty()){ // Check if vector is empty
+        AllowableVelocities.clear(); // Clear it if it is
     }
 
-    double minimum = velocity - (acceleration * Timeslice);
-    double maximum = velocity + (acceleration * Timeslice);
+    double minimum = velocity - (acceleration * Timeslice); // Retrieve minimum possible velocity
+    double maximum = velocity + (acceleration * Timeslice); // Retrieve maximum possible velocity
 
     for(double i = minimum; i<= maximum; i += 0.001){
-        AllowableVelocities.push_back(i);
+        AllowableVelocities.push_back(i); // Add allowable velocities to vector
     }
 
 }
 
 double autodrive::calculateStoppingDistance(double velocity, double acceleration)
 {
-    double Distance = ((velocity * velocity) / (2 * acceleration));
+    double Distance = ((velocity * velocity) / (2 * acceleration)); // calculate the stopping distance
     return Distance;
 }
 
@@ -144,8 +154,26 @@ double autodrive::calculateAngle(double linear, double angular)
 
     double rotation = atan2(temp_y_pos - y_pos, temp_x_pos - x_pos);
 
-    cout << rotation << endl;
+    return rotation;
+}
 
+double autodrive::checkObstacleDistance(double angle)
+{
+    if(!Scan_data.empty()){
+
+        angle = round(angle);
+
+        if((angle <= 90 && angle >= 1) || (angle <= 359 && angle >= 271))
+        {
+            if(angle < 90){ 
+                angle += 90;
+            } else if(angle >=270){
+                angle -= 270;
+            } 
+        }
+
+        return Scan_data.at(angle);
+    }
 }
 
 bool autodrive::controlloop()
@@ -156,16 +184,7 @@ bool autodrive::controlloop()
 
 void autodrive::debug() // Testing function
 {
-    loopAllowableVelocities(Linear_velocity, Linear_acceleration, Linear_velocity_allowable);
-    loopAllowableVelocities(Angular_velocity, Angular_acceleration, Angular_velocity_allowable);
-
-    for(int i = 0; i < Linear_velocity_allowable.size(); i++){
-        for(int j = 0; j < Angular_velocity_allowable.size(); j++){
-
-            //calculateAngle(Linear_velocity_allowable.at(1), Angular_velocity_allowable.at(j));
-            calculateAngle(Linear_velocity_allowable.at(i),Angular_velocity_allowable.at(j));
-        }
-    }
+    
 }
 
 

@@ -82,5 +82,7 @@ class autodrive{
 
         double calculateAngle(double linear, double angular);
 
+        double checkObstacleDistance(double angle);
+
 };
 #endif
