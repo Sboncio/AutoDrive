@@ -152,6 +152,10 @@ double autodrive::calculateAngle(double linear, double angular)
     float temp_x_pos = x_pos + (linear/angular) * sin(temp_Orientation);
     float temp_y_pos = y_pos - (linear/angular) * cos(temp_Orientation);
 
+    goal_Position[0] = temp_x_pos;
+    goal_Position[1] = temp_y_pos;
+    goal_Position[2] = temp_Orientation;
+
     double rotation = atan2(temp_y_pos - y_pos, temp_x_pos - x_pos);
 
     return rotation;
@@ -176,9 +180,25 @@ double autodrive::checkObstacleDistance(double angle)
     }
 }
 
+float autodrive::hDiff(double goal[], float X, float Y, float Theta)
+{
+    float angle = atan2(goal[1] - Y, goal[0] - X) * 180/M_PI;
+    float difference;
+
+    if(angle > Theta){
+        difference = (Theta - angle) + 360;
+    } else if(Theta > angle){
+        difference = (angle - Theta) + 360;
+    }
+
+    return difference;
+}
+
 bool autodrive::controlloop()
 {
  
+    
+
     return true;
 }
 

@@ -61,6 +61,7 @@ class autodrive{
         float Position_Y;
         float Orientation;
 
+        float goal_Position[3] = {0.0, 0.0, 0.0};
 
         double Current_timestamp;
         double Prev_timestamp;
@@ -83,6 +84,8 @@ class autodrive{
         double calculateAngle(double linear, double angular);
 
         double checkObstacleDistance(double angle);
+
+        float hDiff(double goal[], float X, float Y, float Theta);
 
 };
 #endif
