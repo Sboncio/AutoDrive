@@ -87,5 +87,7 @@ class autodrive{
 
         float hDiff(double goal[], float X, float Y, float Theta);
 
+        float calculateMaxDistance(double Linear, double Angular, double angle);
+
 };
 #endif

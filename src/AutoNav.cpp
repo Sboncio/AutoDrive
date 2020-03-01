@@ -180,7 +180,7 @@ double autodrive::checkObstacleDistance(double angle)
     }
 }
 
-float autodrive::hDiff(double goal[], float X, float Y, float Theta)
+float autodrive::hDiff(double goal[], float X, float Y, float Theta) //heading difference
 {
     float angle = atan2(goal[1] - Y, goal[0] - X) * 180/M_PI;
     float difference;
@@ -194,17 +194,32 @@ float autodrive::hDiff(double goal[], float X, float Y, float Theta)
     return difference;
 }
 
+float autodrive::calculateMaxDistance(double Linear, double Angular, double angle) //dmax
+{
+    double theta = calculateAngle(Linear, Angular);
+
+    double centreX = Position_X - (Linear/Angular) * sin(angle);
+    double centreY = Position_Y + (Linear/Angular) * cos(angle);
+
+    double distancefromcentre = pow((Position_X - centreX), 2) + pow((Position_Y - centreY), 2);
+    distancefromcentre = sqrt(distancefromcentre);
+
+    double distance = (theta / 360) * (2 * M_PI * distancefromcentre);
+
+    return distance;
+}
+
 bool autodrive::controlloop()
 {
  
-    
-
     return true;
 }
 
 void autodrive::debug() // Testing function
 {
     
+    
+
 }
 
 
