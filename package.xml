@@ -1,11 +1,11 @@
 <?xml version="1.0"?>
 <package format="2">
   <name>FinalProject</name>
-  <version>0.0.0</version>
-  <description>The finalProject package</description>
+  <version>0.0.1</version>
+  <description>Final Year Project</description>
 
   <maintainer email="p17154469@my365.dmu.ac.uk">sam</maintainer>
-
+  <url type="website">https://github.com/Sboncio/AutoDrive/tree/New</url>
   <license>TODO</license>
 
   <buildtool_depend>catkin</buildtool_depend>
