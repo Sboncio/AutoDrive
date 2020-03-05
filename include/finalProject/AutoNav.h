@@ -46,6 +46,8 @@ class autodrive{
         ros::Subscriber odom_sub_;
 
         // Variables
+        double best_linear;
+        double best_angular;
 
         double Linear_velocity_prev;
         double Linear_velocity;
@@ -88,6 +90,8 @@ class autodrive{
         float hDiff(double goal[], float X, float Y, float Theta);
 
         float calculateMaxDistance(double Linear, double Angular, double angle);
+
+        float costFunction(double heading, double distance, double velocity_linear, double velocity_angular);
 
 };
 #endif

@@ -209,9 +209,54 @@ float autodrive::calculateMaxDistance(double Linear, double Angular, double angl
     return distance;
 }
 
+float autodrive::costFunction(double heading, double distance, double velocity_linear, double velocity_angular)
+{
+
+    int alpha = 1;
+    int beta = 1;
+    int gamma = 1;
+
+    float result = (alpha * heading) + (beta * distance) + ((gamma * velocity_linear) + (gamma * velocity_angular));
+
+    return result;
+
+}
+
 bool autodrive::controlloop()
 {
- 
+    float desired_V = 0.20;
+    loopAllowableVelocities(Linear_velocity, Linear_acceleration, Linear_velocity_allowable);
+    loopAllowableVelocities(Angular_velocity, Angular_acceleration, Angular_velocity_allowable);
+    float optimal = 0;
+
+    for(int i = 0; i < Linear_velocity_allowable.size(); i++){
+        for(int j = 0; j < Angular_velocity_allowable.size(); j++){
+            float angle_Obs = calculateAngle(Linear_velocity_allowable.at(i), Angular_velocity_allowable.at(j));
+            float dist = checkObstacleDistance(angle_Obs);
+            float BrakingDistance = calculateStoppingDistance(Linear_velocity_allowable.at(i), Angular_velocity_allowable.at(j));
+
+            if(dist > BrakingDistance){ // Check if vehicle can stop in time
+                float heading = hDiff(goalPose, Position_X, Position_Y, Orientation);
+                float DMax = calculateMaxDistance(Linear_velocity_allowable.at(i), Angular_velocity_allowable.at(j), Orientation);
+                float clearance = (dist - BrakingDistance)/(DMax - BrakingDistance);
+                float cost = costFunction(heading, dist, Linear_velocity_allowable.at(i), Angular_velocity_allowable.at(j));
+
+                if(cost > optimal){ //Check if these velocities are the best
+                    best_linear = Linear_velocity_allowable.at(i);
+                    best_angular = Angular_velocity_allowable.at(j);
+                    optimal = cost;
+
+                }
+
+
+            } 
+
+
+        } // Allowable velocity loop
+    } // Linear velocity loop
+
+    publishVelocity(best_linear, best_angular);
+
     return true;
 }
 
