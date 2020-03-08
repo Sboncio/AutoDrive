@@ -26,7 +26,7 @@ bool autodrive::init()
 
     
     //Initialise publishers
-    cmd_vel_pub_ = nh_.advertise<geometry_msgs::Twist>("cmd_vel", 100);
+    cmd_vel_pub_ = nh_.advertise<geometry_msgs::Twist>("cmd_vel_topic_name", 100);
 
     //Initialise subscriptions
     laser_scan_sub_ = nh_.subscribe("scan",100, &autodrive::laserMsgCallBack, this); // Subscribe to LiDAR
@@ -111,12 +111,17 @@ void autodrive::odomMsgCallBack(const nav_msgs::Odometry::ConstPtr &msg)
 
 void autodrive::publishVelocity(double Linear, double Angular)
 {
-    geometry_msgs::Twist cmd_vel; // Set message format
+    geometry_msgs::Twist msg; // Set message format
 
-    cmd_vel.linear.x = Linear; //Set linear velocity
-    cmd_vel.angular.z = Angular; //Set Angular velocity
+    msg.linear.x = Linear; //Set linear velocity
+    msg.linear.y = 0;
+    msg.linear.z = 0;
 
-    cmd_vel_pub_.publish(cmd_vel); // Publish message
+    msg.angular.z = Angular; //Set Angular velocity
+    msg.angular.x = 0;
+    msg.angular.y = 0;
+
+    cmd_vel_pub_.publish(msg); // Publish message
 }
 
 
@@ -263,7 +268,8 @@ bool autodrive::controlloop()
 void autodrive::debug() // Testing function
 {
     
-    
+    cout << "Linear: " << best_linear << endl;
+    cout << "Angular: " << best_angular << endl;
 
 }
 
