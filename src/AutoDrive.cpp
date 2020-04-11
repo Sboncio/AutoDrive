@@ -95,7 +95,7 @@ void drive::odomMsgCallBack(const nav_msgs::Odometry::ConstPtr& msg)
     }
 
     for(int i = 0; i < 90; i++){
-        Bubble_Boundary[i] = (Linear_Velocity * (Current_Time - Prev_Time) * Tuning) + 0.8;
+        Bubble_Boundary[i] = (Linear_Velocity * (Current_Time - Prev_Time) * Tuning) + 0.1;
     }
 
 
@@ -130,10 +130,13 @@ bool drive::adjustHeading(double CurrentXCoordinate, double CurrentYCoordinate, 
 
     double min = angle - 4;
     double max = angle + 4;
+
+    if(min < 0){min += 360;}
+    if(max > 360){max -= 360;}
     cout << "Current angle: " << currentAngle << endl;
 
     if(currentAngle < max && currentAngle > min){
-        publishVelocity(0.5,0.0);
+        publishVelocity(0.0,0.0);
         FacingDirection = true;
     } else {
         if(difference < 0){
@@ -169,7 +172,9 @@ int drive::CheckForObstacles()
         for(int i = 0; i < 90; i++)
         {
             if(ScanData.at(i*2) <= Bubble_Boundary[i])
-            {                               
+            {                
+                ROS_INFO("Obstacle detected"); 
+                ComputeReboundAngle();              
                 return 1;
             } else {
                 return 0;
@@ -200,7 +205,7 @@ float drive::ComputeReboundAngle()
 
     static double min = 0;
     static double max = 0;
-    //ROS_INFO("Computing new Angle");
+    ROS_INFO("Computing new Angle");
     
 
     
@@ -218,8 +223,8 @@ float drive::ComputeReboundAngle()
 
         float target = topPortion/bottomPortion;        
 
-        min = target - 1;
-        max = target + 1;
+        min = target - 3;
+        max = target + 3;
         //ROS_INFO("Rebound Angle found");
        
     }
@@ -295,8 +300,8 @@ bool drive::checkIfMoving()
 }
 
 bool drive::checkOnTarget(float targetAngle){
-    double min = targetAngle - (targetAngle / 10);
-    double max = targetAngle + (targetAngle / 10);
+    double min = targetAngle - 4;
+    double max = targetAngle + 4;
 
     if(max >= 360 ){
         max -= 360;
@@ -307,11 +312,11 @@ bool drive::checkOnTarget(float targetAngle){
 
     if(Current_Theta < max && Current_Theta > min){
    
-       // FacingDirection = true;
+        FacingDirection = true;
         return true;
 
     } else {
-        //FacingDirection = false;
+        FacingDirection = false;
         return false;
         
     }
@@ -319,13 +324,14 @@ bool drive::checkOnTarget(float targetAngle){
 
 void drive::Debug()
 { 
-    cout << "FacingDirection: " << FacingDirection << endl;
+    
+    //FacingDirection = checkOnTarget(Target);
+
     if(!FacingDirection){
         adjustHeading(Current_X, Current_Y, Goal_X, Goal_Y, Current_Theta);
         
     } else if(FacingDirection) {
         if(CheckForObstacles() == 0){
-        cout << "Obstacles: " << CheckForObstacles() << endl;    
             MoveForward();
 
             if(GoalVisible() == false){
@@ -333,6 +339,7 @@ void drive::Debug()
             }
            
         } else {
+            
             stopMoving();
             ComputeReboundAngle();
         }
