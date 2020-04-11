@@ -29,7 +29,7 @@ class drive {
         std::vector<float> SensorReadings;
         std::vector<float> ScanData;
 
-        float Bubble_Boundary[36];
+        float Bubble_Boundary[90];
         bool moving;
 
         float Current_X;

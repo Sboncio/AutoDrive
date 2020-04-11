@@ -94,8 +94,8 @@ void drive::odomMsgCallBack(const nav_msgs::Odometry::ConstPtr& msg)
         Orientation = Orientation + (temp * 2);
     }
 
-    for(int i = 0; i < 36; i++){
-        Bubble_Boundary[i] = (Linear_Velocity * (Current_Time - Prev_Time) * Tuning) + 0.7;
+    for(int i = 0; i < 90; i++){
+        Bubble_Boundary[i] = (Linear_Velocity * (Current_Time - Prev_Time) * Tuning) + 0.8;
     }
 
 
@@ -106,55 +106,45 @@ void drive::odomMsgCallBack(const nav_msgs::Odometry::ConstPtr& msg)
 
 bool drive::adjustHeading(double CurrentXCoordinate, double CurrentYCoordinate, float GoalX, float GoalY, double currentAngle)
 {
-    ROS_INFO("Adjusting heading");
-    double xDiff = fabs(GoalX) - abs(CurrentXCoordinate);
-    double yDiff = fabs(GoalY) - abs(CurrentYCoordinate);
+    //ROS_INFO("Adjusting heading");
+    double xDiff = GoalX - CurrentXCoordinate;
+    double yDiff = GoalY - CurrentYCoordinate;
 
     
-    double angle = atan2(yDiff,xDiff);
+    double angle = atan2(yDiff,xDiff) * 180/M_PI;
+
+  
     
-    angle *= 180/M_PI;
-        
+    if(angle > 0){
+        angle = 360 - (abs(angle));
+    } 
+
     if(angle < 0){
-        angle = ((abs(angle)) + 180);
-        
+        angle = abs(angle);
     }
-
-    if(angle > 360){
-        angle -= 360;
-    }
-
-    double min = angle - 5;
-    double max = angle + 5;
-    
-
-
+    cout << "Target angle: " << angle << endl;
 
     float difference = ((float)angle - (float)currentAngle + 540);
     difference = fmod(difference,360.f);
     difference -= 180;
-   
-    
-    
-    Target = angle;
 
-    if((currentAngle < max) && (currentAngle > min)){
-        MoveForward();
+    double min = angle - 4;
+    double max = angle + 4;
+    cout << "Current angle: " << currentAngle << endl;
+
+    if(currentAngle < max && currentAngle > min){
+        publishVelocity(0.5,0.0);
         FacingDirection = true;
-        ROS_INFO("Facing direction");
-        return true;
     } else {
-        cout << "Difference: " << difference << endl;
         if(difference < 0){
-            ROS_INFO("Turning left");
-            publishVelocity(0.0, 0.2);
-        } else if(difference < 0){
-            ROS_INFO("Turning right");
-            publishVelocity(0.0, -0.2);
+            publishVelocity(0.0,0.2);
+            FacingDirection = false;
+        } else {
+            publishVelocity(0.0,-0.2);
+            FacingDirection = false;
         }
-        FacingDirection = false;
-        return false;
     }
+   
 }
 
 void drive::publishVelocity(double Linear, double Angular)
@@ -174,11 +164,11 @@ void drive::publishVelocity(double Linear, double Angular)
 
 int drive::CheckForObstacles()
 {
-    ROS_INFO("Checking for obstacles");
+    //ROS_INFO("Checking for obstacles");
     if(!ScanData.empty()){
-        for(int i = 0; i < 36; i++)
+        for(int i = 0; i < 90; i++)
         {
-            if(ScanData.at(i*5) <= Bubble_Boundary[i])
+            if(ScanData.at(i*2) <= Bubble_Boundary[i])
             {                               
                 return 1;
             } else {
@@ -206,7 +196,7 @@ bool drive::CheckForDestination(){
 
 float drive::ComputeReboundAngle()
 {
-    ROS_INFO("Computing Rebound Angle");
+   
 
     static double min = 0;
     static double max = 0;
@@ -277,7 +267,7 @@ bool drive::GoalVisible()
 
 void drive::MoveForward()
 {
-    ROS_INFO("Moving Forward");
+    
     if(CheckForObstacles() == 0){
         Linear_Velocity = 0.2;
 
@@ -329,13 +319,13 @@ bool drive::checkOnTarget(float targetAngle){
 
 void drive::Debug()
 { 
-    FacingDirection = checkOnTarget(Target);
+    cout << "FacingDirection: " << FacingDirection << endl;
     if(!FacingDirection){
         adjustHeading(Current_X, Current_Y, Goal_X, Goal_Y, Current_Theta);
         
     } else if(FacingDirection) {
         if(CheckForObstacles() == 0){
-            
+        cout << "Obstacles: " << CheckForObstacles() << endl;    
             MoveForward();
 
             if(GoalVisible() == false){
@@ -348,8 +338,7 @@ void drive::Debug()
         }
        
     }
-    cout << "Target angle: " << Target << endl;
-    cout << "Facing Direction? " << FacingDirection << endl;
+    
 
     if(CheckForDestination() == true)
     {
