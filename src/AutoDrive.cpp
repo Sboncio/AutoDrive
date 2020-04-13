@@ -95,7 +95,7 @@ void drive::odomMsgCallBack(const nav_msgs::Odometry::ConstPtr& msg)
     }
 
     for(int i = 0; i < 90; i++){
-        Bubble_Boundary[i] = (Linear_Velocity * (Current_Time - Prev_Time) * Tuning) + 0.1;
+        Bubble_Boundary[i] = (Linear_Velocity * (Current_Time - Prev_Time) * Tuning) + 0.5;
     }
 
 
@@ -137,7 +137,8 @@ bool drive::adjustHeading(double CurrentXCoordinate, double CurrentYCoordinate, 
 
     if(currentAngle < max && currentAngle > min){
         publishVelocity(0.0,0.0);
-        FacingDirection = true;
+        FacingDirection = true; 
+        return true;
     } else {
         if(difference < 0){
             publishVelocity(0.0,0.2);
@@ -146,6 +147,7 @@ bool drive::adjustHeading(double CurrentXCoordinate, double CurrentYCoordinate, 
             publishVelocity(0.0,-0.2);
             FacingDirection = false;
         }
+        return false;
     }
    
 }
@@ -207,7 +209,7 @@ float drive::ComputeReboundAngle()
     static double max = 0;
     ROS_INFO("Computing new Angle");
     
-
+    float target = 0;
     
     if(!SensorReadings.empty() && moving == false){
         
@@ -221,7 +223,7 @@ float drive::ComputeReboundAngle()
             bottomPortion += SensorReadings.at(i);
         }
 
-        float target = topPortion/bottomPortion;        
+        target = topPortion/bottomPortion;        
 
         min = target - 3;
         max = target + 3;
@@ -229,13 +231,23 @@ float drive::ComputeReboundAngle()
        
     }
 
+    float difference = (target - (float)Current_Theta + 540);
+    difference = fmod(difference,360.f);
+    difference -= 180;
     
-    if(Current_Theta > min && Current_Theta < max){
-        publishVelocity(0.0, 0.0);
-  
+    if(Current_Theta < max && Current_Theta > min){
+        publishVelocity(0.0,0.0);
+        FacingDirection = true; 
+        
     } else {
-        publishVelocity(0.0, 0.3);
-
+        if(difference < 0){
+            publishVelocity(0.0,0.2);
+            FacingDirection = false;
+        } else {
+            publishVelocity(0.0,-0.2);
+            FacingDirection = false;
+        }
+        
     }
     
 
@@ -325,27 +337,13 @@ bool drive::checkOnTarget(float targetAngle){
 void drive::Debug()
 { 
     
-    //FacingDirection = checkOnTarget(Target);
-
-    if(!FacingDirection){
-        adjustHeading(Current_X, Current_Y, Goal_X, Goal_Y, Current_Theta);
-        
-    } else if(FacingDirection) {
-        if(CheckForObstacles() == 0){
+    if(adjustHeading(Current_X, Current_Y, Goal_X, Goal_Y, Current_Theta) == true){
+       if(CheckForObstacles() == 0){
             MoveForward();
-
-            if(GoalVisible() == false){
-                adjustHeading(Current_X, Current_Y, Goal_X, Goal_Y, Current_Theta);
-            }
-           
-        } else {
-            
-            stopMoving();
-            ComputeReboundAngle();
-        }
-       
-    }
-    
+       } else {
+           stopMoving();
+       }
+    };
 
     if(CheckForDestination() == true)
     {
