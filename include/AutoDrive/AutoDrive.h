@@ -19,6 +19,7 @@ class drive {
         void Init();
         void Control();
         void Debug();
+        void Sensing();
 
     private:
         ros::Publisher drive2_pub;
@@ -54,6 +55,12 @@ class drive {
 
         bool tempAngle;
 
+        bool Adjusting;
+        bool Moving;
+        bool Avoiding;
+        bool Arrived;
+        bool Rebound;
+
         
         void laserMsgCallBack(const sensor_msgs::LaserScan::ConstPtr& msg);
         void odomMsgCallBack(const nav_msgs::Odometry::ConstPtr& msg);
@@ -76,7 +83,11 @@ class drive {
 
         bool checkIfMoving();
 
-        bool checkOnTarget(float targetAngle);
+        bool checkOnTarget();
+
+        
+
+        
 
 };
 
