@@ -44,7 +44,7 @@ void drive::laserMsgCallBack(const sensor_msgs::LaserScan::ConstPtr& msg)
         ScanData.clear();
     }
 
-    for(int i = 0; i < 360; i += 1){
+    for(int i = 359; i >= 0; i -= 1){
 
         SensorReadings.push_back(msg->ranges.at(i));
 
@@ -54,14 +54,22 @@ void drive::laserMsgCallBack(const sensor_msgs::LaserScan::ConstPtr& msg)
         ScanData.clear();
     }
 
+    int MAX_RANGE = 10;
+
     for(int i = 269; i < 360; i++){
-        
-        ScanData.push_back(msg->ranges.at(i));
-        
+        if(!isinf(msg->ranges.at(i))){
+            ScanData.push_back(msg->ranges.at(i));
+        } else {
+            ScanData.push_back(MAX_RANGE);
+        }
     }
 
     for(int i = 0; i < 91; i++){
-        ScanData.push_back(msg->ranges.at(i));
+        if(!isinf(msg->ranges.at(i))){
+            ScanData.push_back(msg->ranges.at(i));
+        } else {
+            ScanData.push_back(MAX_RANGE);
+        }
     }
 
     Prev_Time = Current_Time;
@@ -102,8 +110,8 @@ void drive::odomMsgCallBack(const nav_msgs::Odometry::ConstPtr& msg)
         Orientation = Orientation + (temp * 2);
     }
 
-    for(int i = 180; i < 0; i-45){
-        Bubble_Boundary[i] = (Linear_Velocity * (Current_Time - Prev_Time) * Tuning) + 0.5;
+    for(int i = 0; i <= 180; i++){
+        Bubble_Boundary[i] = /*(Linear_Velocity * (Current_Time - Prev_Time) * Tuning) +*/ 0.4;
     }
 
 
@@ -130,7 +138,6 @@ bool drive::adjustHeading(double CurrentXCoordinate, double CurrentYCoordinate, 
     if(angle < 0){
         angle = abs(angle);
     }
-    //cout << "Target angle: " << angle << endl;
 
     float difference = ((float)angle - (float)currentAngle + 540);
     difference = fmod(difference,360.f);
@@ -141,7 +148,7 @@ bool drive::adjustHeading(double CurrentXCoordinate, double CurrentYCoordinate, 
 
     if(min < 0){min += 360;}
     if(max > 360){max -= 360;}
-    //cout << "Current angle: " << currentAngle << endl;
+    
 
     if(currentAngle < max && currentAngle > min){
         publishVelocity(0.0,0.0);
@@ -181,9 +188,9 @@ int drive::CheckForObstacles()
     if(!ScanData.empty()){
         
 
-        for(int i = 180; i >=0; i =- 45){
-            cout << "Scan " << i << ": " << ScanData.at(i) << endl;
-            if(ScanData.at(i) <= Bubble_Boundary[i]){
+        for(int i = 135; i >= 45; i -= 45){
+            
+            if(ScanData.at(i+1) <= Bubble_Boundary[i+1]){
                 
                 return 1;
             }
@@ -220,27 +227,26 @@ float drive::ComputeReboundAngle()
 
     if(!ScanData.empty()){
 
-        for(int i = 0; i < 180; i++){
-            if(!isinf(ScanData.at(i))){
-                sensorData.push_back(ScanData.at(i));
-                Location.push_back(i);
-            }
-        }
+        float top = 0;
+        float bottom = 0;
 
-        for(int i = 0; i < sensorData.size(); i++){
-            top += Location.at(i) * sensorData.at(i);
-            bottom += sensorData.at(i);
+        for(int i = 180; i >= 0; i -=45){
+            top += i * ScanData.at(i);
+            bottom += ScanData.at(i);
         }
 
         float result = top/bottom;
-        float min = result - 4;
-        float max = result + 4;
+       
+        float max = result + 3;
+        float min = result - 3;
         
         cout << "Rebound angle: " << result << endl;
-
         float difference = (result - (float)Current_Theta + 540);
         difference = fmod(difference,360.f);
         difference -= 180;
+
+        cout << "Difference in angle: " << difference << endl;
+        
 
         if(Current_Theta > min && Current_Theta < max){
             
@@ -265,25 +271,39 @@ bool drive::GoalVisible()
         double xDiff = Goal_X - Current_X;
         double yDiff = Goal_Y - Current_Y;
 
-        float difference = atan(yDiff/xDiff);
-        difference = difference * 180/M_PI;
+        float angle= atan2(yDiff,xDiff);
+        angle *= 180/M_PI;
 
-        difference = round(difference);
-        difference = fabs(difference);
-       
+        if(angle > 0){
+            angle = 360 - (abs(angle));
+        } 
 
-        double distance = pow(xDiff,2) + pow(yDiff, 2);
-        distance = sqrt(distance);
-        distance = fabs(distance);
+        if(angle < 0){
+            angle = abs(angle);
+        }
         
 
-        if(ScanData.at(difference) > distance){
+        float Adjustment_Angle = 360 - Current_Theta;
+        float Relative_Angle = angle + Adjustment_Angle;
+        Relative_Angle = round(Relative_Angle);
+
+        if(Relative_Angle >=360){Relative_Angle -= 360;}
+        //Relative_Angle = 360 - Relative_Angle;
+
+        //Get distance to goal (Pythagoras)
+        double hypo = pow(xDiff, 2) + pow(yDiff,2);
+        hypo = sqrt(hypo);
+
+         cout << "Sensor reading at sensor"<< Relative_Angle << ": " << SensorReadings.at(Relative_Angle)<< endl;
+         cout << "Distance to goal: " << hypo << endl;
+        if(hypo - SensorReadings.at(Relative_Angle) < 0.2){
+            cout << "Can see goal\n";
             return true;
-            //FacingDirection = true;
         } else {
+            cout << "Can't see goal\n";
             return false;
-            //FacingDirection = false;
         }
+       
 
     }
 }
@@ -348,20 +368,7 @@ bool drive::checkOnTarget(){
 void drive::Debug()
 { 
     
-    if(FacingDirection == true){
-       if(CheckForObstacles() == 0){
-            MoveForward();
-       } else {
-           ComputeReboundAngle();
-       }
-    } else {
-        adjustHeading(Current_X, Current_Y, Goal_X, Goal_Y, Current_Theta);
-    }
-
-    if(CheckForDestination() == true)
-    {
-        stopMoving();
-    }
+    
 
 
 }
@@ -374,24 +381,24 @@ void drive::Sensing()
 
 void drive::Control()
 {
-    /*
-    if(!FacingDirection){
-        adjustHeading(Current_X, Current_Y, Goal_X, Goal_Y, Current_Theta);
-    } else if(Avoiding == false) {
-        MoveForward();
-    }
-    cout << "Obstacles: " << CheckForObstacles() << endl;
-    if(CheckForObstacles() == 1){
-        Avoiding = true;
-        publishVelocity(0.0, 0.5);
-    } else if(Avoiding == true){
-        MoveForward();
+    if(CheckForObstacles() == 0){
+        if(!FacingDirection){
+            adjustHeading(Current_X, Current_Y, Goal_X, Goal_Y, Current_Theta);
+        } else if(Avoiding == false) {
+            if(GoalVisible() == true){
+                
+            } else {
+                MoveForward();
+            }
+        }
+    } else {
+        Adjusting = true;
+        ComputeReboundAngle();
     }
 
-    if(CheckForDestination() == true){
+    if(CheckForDestination()){
         stopMoving();
-    }*/
-    cout << "Obstacle detected: " << CheckForObstacles() << endl;
+    }
 }
 
 int main(int argc, char **argv)
@@ -404,9 +411,9 @@ int main(int argc, char **argv)
 
     while(ros::ok())
     {
-        //control.Debug();
+        control.Debug();
         //control.Sensing();
-        control.Control();
+        //control.Control();
         loop_rate.sleep();
         ros::spinOnce();
     }
