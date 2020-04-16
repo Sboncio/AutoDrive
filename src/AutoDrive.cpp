@@ -22,10 +22,11 @@ drive::drive()
 
     Goal_X = 0.0;
     Goal_Y = 0.0;
+    target_angle = 0;
 
     tempAngle = false;
 
-    Adjusting = Moving = Avoiding = Arrived = Rebound = false;
+    Adjusting = Moving = Avoiding = Arrived = Rebound = AngleLocked = false;
     
 }
 
@@ -151,8 +152,9 @@ bool drive::adjustHeading(double CurrentXCoordinate, double CurrentYCoordinate, 
     
 
     if(currentAngle < max && currentAngle > min){
-        publishVelocity(0.0,0.0);
+        publishVelocity(0.5,0.0);
         FacingDirection = true; 
+        
         return true;
     } else {
         if(difference < 0){
@@ -178,6 +180,8 @@ void drive::publishVelocity(double Linear, double Angular)
     msg.angular.z = Angular; //Set Angular velocity
     msg.angular.x = 0;
     msg.angular.y = 0;
+
+    //cout << "Linear: " << Linear << "   Angular: " << Angular << endl;
 
     drive2_pub.publish(msg); // Publish message
 }
@@ -221,11 +225,14 @@ float drive::ComputeReboundAngle()
 
     double top = 0;
     double bottom = 0;
+    float result;
 
     vector<float> sensorData;
     vector<int> Location;
 
     if(!ScanData.empty()){
+
+        
 
         float top = 0;
         float bottom = 0;
@@ -235,39 +242,44 @@ float drive::ComputeReboundAngle()
             bottom += ScanData.at(i);
         }
 
-        float result = top/bottom;
-       
-        float max = result + 3;
-        float min = result - 3;
+        result = top/bottom;
         
-        cout << "Rebound angle: " << result << endl;
-        float difference = (result - (float)Current_Theta + 540);
-        difference = fmod(difference,360.f);
-        difference -= 180;
-
-        cout << "Difference in angle: " << difference << endl;
+        return result;
+    }
+}
         
-
-        if(Current_Theta > min && Current_Theta < max){
-            
-            publishVelocity(0.5,0.0);
-            Adjusting = false;
+void drive::AdjustAngle(float TargetAngle)      
+{
+    float max = TargetAngle + 3;
+    float min = TargetAngle - 3;
+    
+    float difference = (TargetAngle - (float)Current_Theta + 540);
+    difference = fmod(difference,360.f);
+    difference -= 180;
+    cout << "Target Angle: " << TargetAngle << endl;
+    cout << "current Angle: " << Current_Theta << endl;
+    cout << "Angle difference: " << difference << endl;
+    
+    if(Current_Theta > min && Current_Theta < max){
+        
+        publishVelocity(2.0,0.0);
+        Avoid_X = Current_X;
+        Avoid_Y = Current_Y;
+        AngleLocked = false;
+        Rebound = false;
+    } else {
+        if(difference < 0){
+            publishVelocity(0.0, 0.5);
         } else {
-            if(difference > 0){
-                publishVelocity(0.0, 0.5);
-                Adjusting = true;
-            } else {
-                publishVelocity(0.0,-0.5);
-                Adjusting = true;
-            }
+            publishVelocity(0.0,-0.5);
         }
     }
-
+    
 }
 
 bool drive::GoalVisible()
 {
-    if(!ScanData.empty()){
+    if(!SensorReadings.empty()){
         double xDiff = Goal_X - Current_X;
         double yDiff = Goal_Y - Current_Y;
 
@@ -282,7 +294,6 @@ bool drive::GoalVisible()
             angle = abs(angle);
         }
         
-
         float Adjustment_Angle = 360 - Current_Theta;
         float Relative_Angle = angle + Adjustment_Angle;
         Relative_Angle = round(Relative_Angle);
@@ -294,13 +305,9 @@ bool drive::GoalVisible()
         double hypo = pow(xDiff, 2) + pow(yDiff,2);
         hypo = sqrt(hypo);
 
-         cout << "Sensor reading at sensor"<< Relative_Angle << ": " << SensorReadings.at(Relative_Angle)<< endl;
-         cout << "Distance to goal: " << hypo << endl;
         if(hypo - SensorReadings.at(Relative_Angle) < 0.2){
-            cout << "Can see goal\n";
             return true;
         } else {
-            cout << "Can't see goal\n";
             return false;
         }
        
@@ -353,8 +360,7 @@ bool drive::checkOnTarget(){
     if(angle < 0){
         angle = abs(angle);
     }
-    cout << "Angle: " << angle << endl;
-    cout << "Current Angle: " << Current_Theta << endl;
+
     double min = angle - 4;
     double max = angle + 4;
 
@@ -365,35 +371,48 @@ bool drive::checkOnTarget(){
     }
 }
 
+void drive::shove()
+{
+    float xDiff = fabs(Current_X - Avoid_X);
+    float yDiff = fabs(Current_Y - Avoid_Y);
+
+    if(yDiff < 0.1 || xDiff < 0.1){
+        MoveForward();
+    }
+}
+
 void drive::Debug()
 { 
-    
-    
-
 
 }
 
-void drive::Sensing()
-{
-    
-   
-}
 
 void drive::Control()
 {
-    if(CheckForObstacles() == 0){
+    if(CheckForObstacles() == 0 && Rebound == false){
+        
         if(!FacingDirection){
             adjustHeading(Current_X, Current_Y, Goal_X, Goal_Y, Current_Theta);
         } else if(Avoiding == false) {
             if(GoalVisible() == true){
-                
+                if(checkOnTarget() == false){
+                    adjustHeading(Current_X, Current_Y, Goal_X, Goal_Y, Current_Theta);
+                } else {
+                    MoveForward();
+                }
             } else {
                 MoveForward();
             }
         }
     } else {
-        Adjusting = true;
-        ComputeReboundAngle();
+        if(!AngleLocked){
+            target_angle = ComputeReboundAngle();
+            AngleLocked = true;
+            Rebound = true;
+        }
+        AdjustAngle(target_angle);
+
+        
     }
 
     if(CheckForDestination()){
@@ -411,9 +430,8 @@ int main(int argc, char **argv)
 
     while(ros::ok())
     {
-        control.Debug();
-        //control.Sensing();
-        //control.Control();
+        //control.Debug();
+        control.Control();
         loop_rate.sleep();
         ros::spinOnce();
     }

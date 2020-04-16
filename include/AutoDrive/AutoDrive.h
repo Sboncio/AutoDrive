@@ -5,6 +5,7 @@
 #include <vector>
 #include <math.h>
 #include <cmath>
+#include <time.h>
 
 #include <sensor_msgs/LaserScan.h>
 #include <geometry_msgs/Twist.h>
@@ -19,7 +20,6 @@ class drive {
         void Init();
         void Control();
         void Debug();
-        void Sensing();
 
     private:
         ros::Publisher drive2_pub;
@@ -41,6 +41,9 @@ class drive {
         float Goal_X;
         float Goal_Y;
 
+        float Avoid_X;
+        float Avoid_Y;
+
         double Linear_Velocity;
         double Angular_Velocity;
 
@@ -48,6 +51,8 @@ class drive {
         float Current_Time = Prev_Time;
 
         float Tuning;
+
+        float target_angle;
 
         // Flags
         bool CorrectHeading;
@@ -60,6 +65,9 @@ class drive {
         bool Avoiding;
         bool Arrived;
         bool Rebound;
+
+        bool AngleLocked;
+        
 
         
         void laserMsgCallBack(const sensor_msgs::LaserScan::ConstPtr& msg);
@@ -75,6 +83,8 @@ class drive {
 
         float ComputeReboundAngle();
 
+        void AdjustAngle(float TargetAngle);
+
         bool GoalVisible();
 
         void MoveForward();
@@ -85,9 +95,7 @@ class drive {
 
         bool checkOnTarget();
 
-        
-
-        
+        void shove();
 
 };
 
