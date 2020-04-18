@@ -112,7 +112,7 @@ void drive::odomMsgCallBack(const nav_msgs::Odometry::ConstPtr& msg)
     }
 
     for(int i = 0; i <= 180; i++){
-        Bubble_Boundary[i] = /*(Linear_Velocity * (Current_Time - Prev_Time) * Tuning) +*/ 0.4;
+        Bubble_Boundary[i] = /*(Linear_Velocity * (Current_Time - Prev_Time) * Tuning)*/ + 0.35;
     }
 
 
@@ -123,6 +123,7 @@ void drive::odomMsgCallBack(const nav_msgs::Odometry::ConstPtr& msg)
 
 bool drive::adjustHeading(double CurrentXCoordinate, double CurrentYCoordinate, float GoalX, float GoalY, double currentAngle)
 {
+    
     //ROS_INFO("Adjusting heading");
     double xDiff = GoalX - CurrentXCoordinate;
     double yDiff = GoalY - CurrentYCoordinate;
@@ -195,7 +196,7 @@ int drive::CheckForObstacles()
         for(int i = 135; i >= 45; i -= 45){
             
             if(ScanData.at(i+1) <= Bubble_Boundary[i+1]){
-                
+                ROS_INFO("Obstacle detected");
                 return 1;
             }
         }
@@ -205,11 +206,11 @@ int drive::CheckForObstacles()
 
 bool drive::CheckForDestination(){
     
-    double minimumX = Goal_X - 0.3;
-    double maximumX = Goal_X + 0.3;
+    double minimumX = Goal_X - 0.4;
+    double maximumX = Goal_X + 0.4;
 
-    double maximumY = Goal_Y + 0.3;
-    double minimumY = Goal_Y - 0.3;
+    double maximumY = Goal_Y + 0.4;
+    double minimumY = Goal_Y - 0.4;
 
     if((Current_X < maximumY) && (Current_X > minimumY) && (Current_Y < maximumX) && (Current_Y > minimumX)){
         ROS_INFO("Destination reached");
@@ -221,8 +222,6 @@ bool drive::CheckForDestination(){
 
 float drive::ComputeReboundAngle()
 {
-   
-
     double top = 0;
     double bottom = 0;
     float result;
@@ -256,17 +255,15 @@ void drive::AdjustAngle(float TargetAngle)
     float difference = (TargetAngle - (float)Current_Theta + 540);
     difference = fmod(difference,360.f);
     difference -= 180;
-    cout << "Target Angle: " << TargetAngle << endl;
-    cout << "current Angle: " << Current_Theta << endl;
-    cout << "Angle difference: " << difference << endl;
     
     if(Current_Theta > min && Current_Theta < max){
         
-        publishVelocity(2.0,0.0);
+        publishVelocity(0.0,0.0);
         Avoid_X = Current_X;
         Avoid_Y = Current_Y;
         AngleLocked = false;
         Rebound = false;
+        Adjusting = true;
     } else {
         if(difference < 0){
             publishVelocity(0.0, 0.5);
@@ -317,7 +314,6 @@ bool drive::GoalVisible()
 
 void drive::MoveForward()
 {
-    
     if(CheckForObstacles() == 0){
         Linear_Velocity = 0.2;
 
@@ -347,7 +343,6 @@ bool drive::checkIfMoving()
 bool drive::checkOnTarget(){
     double xDiff = Goal_X - Current_X;
     double yDiff = Goal_Y - Current_Y;
-
     
     double angle = atan2(yDiff,xDiff) * 180/M_PI;
 
@@ -375,9 +370,12 @@ void drive::shove()
 {
     float xDiff = fabs(Current_X - Avoid_X);
     float yDiff = fabs(Current_Y - Avoid_Y);
+    
 
-    if(yDiff < 0.1 || xDiff < 0.1){
+    if(yDiff < 0.05 || xDiff < 0.05){
         MoveForward();
+    } else {
+        Adjusting = false;
     }
 }
 
@@ -390,20 +388,26 @@ void drive::Debug()
 void drive::Control()
 {
     if(CheckForObstacles() == 0 && Rebound == false){
+
+        if(Adjusting){
+            shove();
+        } else {
         
-        if(!FacingDirection){
-            adjustHeading(Current_X, Current_Y, Goal_X, Goal_Y, Current_Theta);
-        } else if(Avoiding == false) {
-            if(GoalVisible() == true){
-                if(checkOnTarget() == false){
-                    adjustHeading(Current_X, Current_Y, Goal_X, Goal_Y, Current_Theta);
+            if(!FacingDirection){
+                adjustHeading(Current_X, Current_Y, Goal_X, Goal_Y, Current_Theta);
+            } else if(Avoiding == false) {
+                if(GoalVisible() == true){
+                    if(checkOnTarget() == false){
+                        adjustHeading(Current_X, Current_Y, Goal_X, Goal_Y, Current_Theta);
+                    } else {
+                        MoveForward();
+                    }
                 } else {
                     MoveForward();
                 }
-            } else {
-                MoveForward();
             }
         }
+        
     } else {
         if(!AngleLocked){
             target_angle = ComputeReboundAngle();
