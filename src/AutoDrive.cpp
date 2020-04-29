@@ -4,25 +4,31 @@
 
 using namespace std;
 
+
+/*! \fn drive::drive()
+*   \brief The constructor for the drive class.
+*   Called when the object is created.
+*/
 drive::drive()
 {
     ros::NodeHandle nh;
 
-    drive2_pub = nh.advertise<geometry_msgs::Twist>("cmd_vel", 10);
+    drive2_pub = nh.advertise<geometry_msgs::Twist>("cmd_vel", 10); //!< Set the publisher 
 
-    drive2_sub_Laser = nh.subscribe("scan",100, &drive::laserMsgCallBack, this);
-    drive2_sub_Odom = nh.subscribe("odom", 100, &drive::odomMsgCallBack, this);
+    drive2_sub_Laser = nh.subscribe("scan",100, &drive::laserMsgCallBack, this); //!< Subscribe to LiDAR
+    drive2_sub_Odom = nh.subscribe("odom", 100, &drive::odomMsgCallBack, this); //!< Subscribe to odometry
 
+    //! Set flags
     CorrectHeading = false;
     FacingDirection = false;
     Tuning = 3;
     Angular_Velocity = 0.0;
     Linear_Velocity = 0.0;
-    publishVelocity(2.2, 0.4);
+    publishVelocity(2.2, 0.4); //!< Set initial velocity
 
-    Goal_X = 0.0;
-    Goal_Y = 0.0;
-    target_angle = 0;
+    Goal_X = 0.0; //!< Set the goal X coordinate
+    Goal_Y = 0.0; //!< Set the goal Y coordinate
+    target_angle = 0; //
 
     tempAngle = false;
 
@@ -30,10 +36,20 @@ drive::drive()
     
 }
 
+/*!
+    \fn drive::~drive()
+    \brief The destructor of the drive class
+*/
 drive::~drive(){
 
 }
 
+/*!
+    \fn void drive::laserMsgCallBack(const sensor_msgs::LaserScan::ConstPtr& msg)
+    \brief Function which is called when data is detected from the LiDAR sensor.
+
+    \param msg The message received from the ROS master containing data from the LiDAR
+*/
 void drive::laserMsgCallBack(const sensor_msgs::LaserScan::ConstPtr& msg)
 {
 
@@ -79,6 +95,12 @@ void drive::laserMsgCallBack(const sensor_msgs::LaserScan::ConstPtr& msg)
 
 }
 
+/*!
+    \fn void drive::odomMsgCallBack(const nav_msgs::Odometry::ConstPtr& msg)
+    \brief Function that is called when odometry data is available
+
+*/
+
 void drive::odomMsgCallBack(const nav_msgs::Odometry::ConstPtr& msg)
 {
     Current_X = msg->pose.pose.position.x; // Get the x position
@@ -112,7 +134,7 @@ void drive::odomMsgCallBack(const nav_msgs::Odometry::ConstPtr& msg)
     }
 
     for(int i = 0; i <= 180; i++){
-        Bubble_Boundary[i] = /*(Linear_Velocity * (Current_Time - Prev_Time) * Tuning)*/ + 0.35;
+        Bubble_Boundary[i] = Linear_Velocity * (Current_Time - Prev_Time) + 0.4;
     }
 
 
@@ -120,11 +142,23 @@ void drive::odomMsgCallBack(const nav_msgs::Odometry::ConstPtr& msg)
     
 }
 
+/*!
+    \fn bool drive::adjustHeading(double CurrentXCoordinate, double CurrentYCoordinate, float GoalX, float GoalY, double currentAngle)
+    \brief Adjusts the turtlebot3 to the heading to face the destination.
 
+    \param CurrentXCoordinate The current X position of the robot relative to the world
+    \param CurrentYCoordinate The current Y position of the robot relative to the world
+    \param GoalX The X coordinate of the destination
+    \param GoalY The Y coordinate of the destination
+    \param currentAngle The current angle of the robot in degrees
+
+    
+*/
 bool drive::adjustHeading(double CurrentXCoordinate, double CurrentYCoordinate, float GoalX, float GoalY, double currentAngle)
 {
     
-    //ROS_INFO("Adjusting heading");
+    ROS_INFO("Adjusting heading");
+    
     double xDiff = GoalX - CurrentXCoordinate;
     double yDiff = GoalY - CurrentYCoordinate;
 
@@ -170,23 +204,33 @@ bool drive::adjustHeading(double CurrentXCoordinate, double CurrentYCoordinate, 
    
 }
 
+/*!
+    \fn void drive::publishVelocity(double Linear, double Angular)
+    Function to publish the velocity, setting linear and angular velocity of the robot.
+
+    \param Linear The desired linear velocity of the robot
+    \param Angular The desired angular velocity of the robot
+*/
+
 void drive::publishVelocity(double Linear, double Angular)
 {
-    geometry_msgs::Twist msg; // Set message format
+    geometry_msgs::Twist msg; //!< Set message format
 
-    msg.linear.x = Linear; //Set linear velocity
+    msg.linear.x = Linear; //!< Set linear velocity
     msg.linear.y = 0;
     msg.linear.z = 0;
 
-    msg.angular.z = Angular; //Set Angular velocity
+    msg.angular.z = Angular; //!< Set Angular velocity
     msg.angular.x = 0;
     msg.angular.y = 0;
 
-    //cout << "Linear: " << Linear << "   Angular: " << Angular << endl;
-
-    drive2_pub.publish(msg); // Publish message
+    drive2_pub.publish(msg); //!< Publish message
 }
 
+/*! 
+    \fn int drive::CheckForObstacles()
+    \brief Function to check if there are any obstacles detected
+*/
 int drive::CheckForObstacles()
 {
     //ROS_INFO("Checking for obstacles");
@@ -203,7 +247,10 @@ int drive::CheckForObstacles()
         return 0;
     }
 }
-
+/*!
+    \fn bool drive::CheckForDestination()
+    \brief Function to check whether the robot has reached the destination set
+*/
 bool drive::CheckForDestination(){
     
     double minimumX = Goal_X - 0.4;
@@ -220,6 +267,10 @@ bool drive::CheckForDestination(){
     }
 }
 
+/*!
+    \fn float drive::ComputeReboundAngle()
+    \brief Computes the rebound angle necessary for the Bubble Rebound Algorithm
+*/
 float drive::ComputeReboundAngle()
 {
     double top = 0;
@@ -246,7 +297,13 @@ float drive::ComputeReboundAngle()
         return result;
     }
 }
-        
+
+/*!
+    \fn void drive::AdjustAngle(float TargetAngle)
+    \brief Adjusts the robots angle to align with the rebound angle
+
+    \param TargetAngle The angle that was calculated
+*/
 void drive::AdjustAngle(float TargetAngle)      
 {
     float max = TargetAngle + 3;
@@ -274,6 +331,10 @@ void drive::AdjustAngle(float TargetAngle)
     
 }
 
+/*!
+    \fn bool drive::GoalVisible()
+    \brief Uses the pythagorean theorem to detect if there is an obstacle between the robot and the destination
+*/
 bool drive::GoalVisible()
 {
     if(!SensorReadings.empty()){
@@ -312,6 +373,10 @@ bool drive::GoalVisible()
     }
 }
 
+/*!
+    \fn void drive::MoveForward()
+    \brief Moves the robot forward at a speed of 0.2
+*/
 void drive::MoveForward()
 {
     if(CheckForObstacles() == 0){
@@ -326,11 +391,20 @@ void drive::MoveForward()
     } 
     
 }
+/*!
+    \fn void drive::stopMoving()
+    \brief Stop the system
 
+    Set the systems angular and linear velocities to 0.0
+*/
 void drive::stopMoving(){
     publishVelocity(0.0, 0.0);
 }
 
+/*!
+    \fn bool drive::checkIfMoving()
+    \brief Return if the robot is in motion
+*/
 bool drive::checkIfMoving()
 {
     if(Linear_Velocity < 0.2){
@@ -340,6 +414,10 @@ bool drive::checkIfMoving()
     }
 }
 
+/*!
+    \fn bool drive::checkOnTarget()
+    \brief Checks if the system orientation is correct to reach the destination
+*/
 bool drive::checkOnTarget(){
     double xDiff = Goal_X - Current_X;
     double yDiff = Goal_Y - Current_Y;
@@ -366,6 +444,10 @@ bool drive::checkOnTarget(){
     }
 }
 
+/*!
+    \fn void bool::shove()
+    \brief Move the system slightly to avoid obstacles
+*/
 void drive::shove()
 {
     float xDiff = fabs(Current_X - Avoid_X);
@@ -379,12 +461,19 @@ void drive::shove()
     }
 }
 
+/*!
+    \fn void drive::Debug()
+    \brief Function used for testing
+*/
 void drive::Debug()
 { 
 
 }
 
-
+/*!
+*    \fn void drive::Control()
+*    \brief The function containing the control algorithm
+*/
 void drive::Control()
 {
     if(CheckForObstacles() == 0 && Rebound == false){
@@ -424,21 +513,3 @@ void drive::Control()
     }
 }
 
-int main(int argc, char **argv)
-{
-    ros::init(argc, argv, "AutoDrive");
-    drive control;
-    
-    
-    ros::Rate loop_rate(60);
-
-    while(ros::ok())
-    {
-        //control.Debug();
-        control.Control();
-        loop_rate.sleep();
-        ros::spinOnce();
-    }
-
-    return 0;
-}

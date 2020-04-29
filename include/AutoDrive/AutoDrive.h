@@ -13,6 +13,13 @@
 
 using namespace std;
 
+/*!
+    \class drive
+    \brief The class containing the control systems variables and function
+
+    
+*/
+
 class drive {
     public:
         drive();
@@ -22,51 +29,51 @@ class drive {
         void Debug();
 
     private:
-        ros::Publisher drive2_pub;
-        ros::Subscriber drive2_sub_Laser;
-        ros::Subscriber drive2_sub_Odom;
+        ros::Publisher drive2_pub; //!< Create a publisher to set velocities
+        ros::Subscriber drive2_sub_Laser; //!< Subscriber to read LiDAR data
+        ros::Subscriber drive2_sub_Odom; //!< Subscriber to read odometry data
 
-        int degreeOfSeparation = 18;
-        std::vector<float> SensorReadings;
-        std::vector<float> ScanData;
+        int degreeOfSeparation = 18; //!< degrees between lidar ranges
+        std::vector<float> SensorReadings; //!< Pure sensor data
+        std::vector<float> ScanData; //!< Filtered scan data
 
-        float Bubble_Boundary[181];
+        float Bubble_Boundary[181]; //!< The boundaries for the bubble rebound algorithm
         bool moving;
 
-        float Current_X;
-        float Current_Y;
-        double Current_Theta;
-        double Target;
+        float Current_X; //!< Current X coordinate of the system.
+        float Current_Y; //!< Current Y coordinate of the system.
+        double Current_Theta; //!< Current angle that the system is facing
+        double Target; //!< Target angle to reach
 
-        float Goal_X;
-        float Goal_Y;
+        float Goal_X; //!< Goal X coordinate
+        float Goal_Y; //!< Goal Y coordinate
 
-        float Avoid_X;
-        float Avoid_Y;
+        float Avoid_X; //!< X coordinate of detected obstacle
+        float Avoid_Y; //!< Y coordinate of detected obstacle
 
-        double Linear_Velocity;
-        double Angular_Velocity;
+        double Linear_Velocity; //!< Current linear velocity of the system
+        double Angular_Velocity; //!< Current angular velocity of the system
 
-        float Prev_Time = 0;
-        float Current_Time = Prev_Time;
+        float Prev_Time = 0; //!< Previous time a package was received
+        float Current_Time = Prev_Time; //!< Current time
 
-        float Tuning;
+        float Tuning; //!< Tuning parameter for bubble rebound algorithm
 
-        float target_angle;
+        float target_angle; //!< Locked angle for adjustments
 
         // Flags
-        bool CorrectHeading;
-        bool FacingDirection;
+        bool CorrectHeading; //!< System is facing towards destination
+        bool FacingDirection; //!< Facing necessary angle
 
-        bool tempAngle;
+        bool tempAngle; //!< Temporary angle for avoidance
 
-        bool Adjusting;
-        bool Moving;
-        bool Avoiding;
-        bool Arrived;
-        bool Rebound;
+        bool Adjusting; //!< System is currently adjusting
+        bool Moving; //!< System is currently moving while adjusting
+        bool Avoiding; //!< System is currently avoiding an obstacle
+        bool Arrived; //!< System has arrived at the destination
+        bool Rebound; //!< System is moving towards an area clear of obstacles
 
-        bool AngleLocked;
+        bool AngleLocked; //!< Lock the angle
         
 
         
