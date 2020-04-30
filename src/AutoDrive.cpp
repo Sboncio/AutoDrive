@@ -73,6 +73,8 @@ void drive::laserMsgCallBack(const sensor_msgs::LaserScan::ConstPtr& msg)
 
     int MAX_RANGE = 10;
 
+    
+
     for(int i = 269; i < 360; i++){
         if(!isinf(msg->ranges.at(i))){
             ScanData.push_back(msg->ranges.at(i));
@@ -88,6 +90,7 @@ void drive::laserMsgCallBack(const sensor_msgs::LaserScan::ConstPtr& msg)
             ScanData.push_back(MAX_RANGE);
         }
     }
+    
 
     Prev_Time = Current_Time;
     Current_Time = msg->header.stamp.sec;
@@ -98,7 +101,6 @@ void drive::laserMsgCallBack(const sensor_msgs::LaserScan::ConstPtr& msg)
 /*!
     \fn void drive::odomMsgCallBack(const nav_msgs::Odometry::ConstPtr& msg)
     \brief Function that is called when odometry data is available
-
 */
 
 void drive::odomMsgCallBack(const nav_msgs::Odometry::ConstPtr& msg)
@@ -134,7 +136,7 @@ void drive::odomMsgCallBack(const nav_msgs::Odometry::ConstPtr& msg)
     }
 
     for(int i = 0; i <= 180; i++){
-        Bubble_Boundary[i] = Linear_Velocity * (Current_Time - Prev_Time) + 0.4;
+        Bubble_Boundary[i] = Linear_Velocity * (Current_Time - Prev_Time) + 0.3;
     }
 
 
@@ -233,11 +235,11 @@ void drive::publishVelocity(double Linear, double Angular)
 */
 int drive::CheckForObstacles()
 {
-    //ROS_INFO("Checking for obstacles");
+    ROS_INFO("Checking for obstacles");
     if(!ScanData.empty()){
         
 
-        for(int i = 135; i >= 45; i -= 45){
+        for(int i = 70; i <= 110; i += 10){
             
             if(ScanData.at(i+1) <= Bubble_Boundary[i+1]){
                 ROS_INFO("Obstacle detected");
@@ -253,11 +255,11 @@ int drive::CheckForObstacles()
 */
 bool drive::CheckForDestination(){
     
-    double minimumX = Goal_X - 0.4;
-    double maximumX = Goal_X + 0.4;
+    double minimumX = Goal_X - 0.3;
+    double maximumX = Goal_X + 0.3;
 
-    double maximumY = Goal_Y + 0.4;
-    double minimumY = Goal_Y - 0.4;
+    double maximumY = Goal_Y + 0.3;
+    double minimumY = Goal_Y - 0.3;
 
     if((Current_X < maximumY) && (Current_X > minimumY) && (Current_Y < maximumX) && (Current_Y > minimumX)){
         ROS_INFO("Destination reached");
@@ -273,6 +275,7 @@ bool drive::CheckForDestination(){
 */
 float drive::ComputeReboundAngle()
 {
+    ROS_INFO("Computing rebound angle");
     double top = 0;
     double bottom = 0;
     float result;
@@ -280,20 +283,20 @@ float drive::ComputeReboundAngle()
     vector<float> sensorData;
     vector<int> Location;
 
-    if(!ScanData.empty()){
+    if(!SensorReadings.empty()){
 
         
 
         float top = 0;
         float bottom = 0;
 
-        for(int i = 180; i >= 0; i -=45){
-            top += i * ScanData.at(i);
-            bottom += ScanData.at(i);
+        for(int i = 270; i >= 0; i -=45){
+            top += i * SensorReadings.at(i);
+            bottom += SensorReadings.at(i);
         }
 
         result = top/bottom;
-        
+        cout << "Result: " << result << endl;
         return result;
     }
 }
@@ -306,6 +309,7 @@ float drive::ComputeReboundAngle()
 */
 void drive::AdjustAngle(float TargetAngle)      
 {
+    ROS_INFO("Adjusting angle");
     float max = TargetAngle + 3;
     float min = TargetAngle - 3;
     
@@ -337,6 +341,7 @@ void drive::AdjustAngle(float TargetAngle)
 */
 bool drive::GoalVisible()
 {
+    ROS_INFO("Checking of goal is visible");
     if(!SensorReadings.empty()){
         double xDiff = Goal_X - Current_X;
         double yDiff = Goal_Y - Current_Y;
@@ -357,9 +362,9 @@ bool drive::GoalVisible()
         Relative_Angle = round(Relative_Angle);
 
         if(Relative_Angle >=360){Relative_Angle -= 360;}
-        //Relative_Angle = 360 - Relative_Angle;
+        
 
-        //Get distance to goal (Pythagoras)
+        //! Get distance to goal (Pythagoras)
         double hypo = pow(xDiff, 2) + pow(yDiff,2);
         hypo = sqrt(hypo);
 
@@ -379,6 +384,7 @@ bool drive::GoalVisible()
 */
 void drive::MoveForward()
 {
+    ROS_INFO("Moving forward");
     if(CheckForObstacles() == 0){
         Linear_Velocity = 0.2;
 
@@ -398,6 +404,7 @@ void drive::MoveForward()
     Set the systems angular and linear velocities to 0.0
 */
 void drive::stopMoving(){
+    ROS_INFO("Stopping movement");
     publishVelocity(0.0, 0.0);
 }
 
@@ -419,6 +426,7 @@ bool drive::checkIfMoving()
     \brief Checks if the system orientation is correct to reach the destination
 */
 bool drive::checkOnTarget(){
+    ROS_INFO("Checking if system is on target");
     double xDiff = Goal_X - Current_X;
     double yDiff = Goal_Y - Current_Y;
     
@@ -450,6 +458,7 @@ bool drive::checkOnTarget(){
 */
 void drive::shove()
 {
+    ROS_INFO("Moving forward");
     float xDiff = fabs(Current_X - Avoid_X);
     float yDiff = fabs(Current_Y - Avoid_Y);
     
@@ -467,7 +476,9 @@ void drive::shove()
 */
 void drive::Debug()
 { 
-
+    if(!ScanData.empty()){
+        cout << ScanData.at(180) << endl;
+    }
 }
 
 /*!
