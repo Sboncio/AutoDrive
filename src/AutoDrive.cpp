@@ -255,11 +255,11 @@ int drive::CheckForObstacles()
 */
 bool drive::CheckForDestination(){
     
-    double minimumX = Goal_X - 0.3;
-    double maximumX = Goal_X + 0.3;
+    double minimumX = Goal_X - 0.4;
+    double maximumX = Goal_X + 0.4;
 
-    double maximumY = Goal_Y + 0.3;
-    double minimumY = Goal_Y - 0.3;
+    double maximumY = Goal_Y + 0.4;
+    double minimumY = Goal_Y - 0.4;
 
     if((Current_X < maximumY) && (Current_X > minimumY) && (Current_Y < maximumX) && (Current_Y > minimumX)){
         ROS_INFO("Destination reached");
