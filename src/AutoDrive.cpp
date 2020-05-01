@@ -255,11 +255,11 @@ int drive::CheckForObstacles()
 */
 bool drive::CheckForDestination(){
     
-    double minimumX = Goal_X - 0.4;
-    double maximumX = Goal_X + 0.4;
+    double minimumX = Goal_X - 0.3;
+    double maximumX = Goal_X + 0.3;
 
-    double maximumY = Goal_Y + 0.4;
-    double minimumY = Goal_Y - 0.4;
+    double maximumY = Goal_Y + 0.3;
+    double minimumY = Goal_Y - 0.3;
 
     if((Current_X < maximumY) && (Current_X > minimumY) && (Current_Y < maximumX) && (Current_Y > minimumX)){
         ROS_INFO("Destination reached");
@@ -297,6 +297,7 @@ float drive::ComputeReboundAngle()
 
         result = top/bottom;
         cout << "Result: " << result << endl;
+        target_angle = result;
         return result;
     }
 }
@@ -307,7 +308,7 @@ float drive::ComputeReboundAngle()
 
     \param TargetAngle The angle that was calculated
 */
-void drive::AdjustAngle(float TargetAngle)      
+void drive::AdjustAngle(double TargetAngle)      
 {
     ROS_INFO("Adjusting angle");
     float max = TargetAngle + 3;
@@ -316,6 +317,7 @@ void drive::AdjustAngle(float TargetAngle)
     float difference = (TargetAngle - (float)Current_Theta + 540);
     difference = fmod(difference,360.f);
     difference -= 180;
+    cout << "Target angle: " << TargetAngle << endl;
     
     if(Current_Theta > min && Current_Theta < max){
         
@@ -476,9 +478,7 @@ void drive::shove()
 */
 void drive::Debug()
 { 
-    if(!ScanData.empty()){
-        cout << ScanData.at(180) << endl;
-    }
+    
 }
 
 /*!
@@ -510,7 +510,7 @@ void drive::Control()
         
     } else {
         if(!AngleLocked){
-            target_angle = ComputeReboundAngle();
+            ComputeReboundAngle();
             AngleLocked = true;
             Rebound = true;
         }

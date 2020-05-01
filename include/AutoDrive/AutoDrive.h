@@ -59,7 +59,7 @@ class drive {
 
         float Tuning; //!< Tuning parameter for bubble rebound algorithm
 
-        float target_angle; //!< Locked angle for adjustments
+        double target_angle; //!< Locked angle for adjustments
 
         // Flags
         bool CorrectHeading; //!< System is facing towards destination
@@ -90,7 +90,7 @@ class drive {
 
         float ComputeReboundAngle();
 
-        void AdjustAngle(float TargetAngle);
+        void AdjustAngle(double TargetAngle);
 
         bool GoalVisible();
 
