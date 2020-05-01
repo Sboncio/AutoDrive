@@ -1,0 +1,3 @@
+Possible improvements:
+	- Graphical user interface
+	- Ability to control additional robots
