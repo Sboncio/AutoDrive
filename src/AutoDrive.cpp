@@ -14,9 +14,11 @@ drive::drive()
     ros::NodeHandle nh;
 
     drive2_pub = nh.advertise<geometry_msgs::Twist>("cmd_vel", 10); //!< Set the publisher 
+    marker_pub = nh.advertise<visualization_msgs::Marker>("visualization_marker", 10); //!< Set the publisher to plot path
 
     drive2_sub_Laser = nh.subscribe("scan",100, &drive::laserMsgCallBack, this); //!< Subscribe to LiDAR
     drive2_sub_Odom = nh.subscribe("odom", 100, &drive::odomMsgCallBack, this); //!< Subscribe to odometry
+
 
     //! Set flags
     CorrectHeading = false;
@@ -29,6 +31,8 @@ drive::drive()
     Goal_X = 0.0; //!< Set the goal X coordinate
     Goal_Y = 0.0; //!< Set the goal Y coordinate
     target_angle = 0; //
+
+    map_count = 0;
 
     tempAngle = false;
 
@@ -472,6 +476,42 @@ void drive::shove()
     }
 }
 
+void drive::plotPath()
+{
+    visualization_msgs::Marker points; //Create object for points and object for lines
+    points.header.frame_id   = "/map"; //Set the frame_ID to "map"
+    points.header.stamp  = ros::Time::now(); //Set the time header to the current time
+    points.ns =  "path"; //Set the namespace of the objects
+    points.action = visualization_msgs::Marker::ADD; //Ensure new shapes are added, not replaced
+
+    points.id = map_count;
+    map_count++;
+
+    points.type = visualization_msgs::Marker::POINTS; //Set the object type
+    points.scale.x = 0.25;
+    points.scale.y = 0.25;
+
+    points.color.r = 1.0f;
+    points.color.g = 0.0f;
+    points.color.b = 1.0f;
+    points.color.a = 1.0f;
+
+    float xPos = Current_X;
+    float yPos = Current_Y;
+    
+    geometry_msgs::Point p1;
+
+    //Set the x and y positions
+    p1.x = xPos;
+    p1.y = yPos;
+    p1.z = 1;
+
+    points.points.push_back(p1);
+
+    marker_pub.publish(points);
+}
+
+
 /*!
     \fn void drive::Debug()
     \brief Function used for testing
@@ -521,6 +561,8 @@ void drive::Control()
 
     if(CheckForDestination()){
         stopMoving();
+    } else {
+        plotPath();
     }
 }
 

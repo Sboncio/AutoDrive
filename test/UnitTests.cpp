@@ -58,6 +58,8 @@ TEST_CASE("Correctly evaluate difference between angles", "[single file]"){
 TEST_CASE("Assess angle to destination in degrees", "[single file]"){
     REQUIRE(target_angle(3, 3) == 45);
     REQUIRE(target_angle(0,3) == 90);
+    REQUIRE(target_angle(0, -3) == -90);
+    REQUIRE(target_angle(2,-2) == -45);
 }
 
 TEST_CASE("Correctly convert quaternion values to degrees", "[single file]"){

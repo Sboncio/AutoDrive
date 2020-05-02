@@ -10,6 +10,7 @@
 #include <sensor_msgs/LaserScan.h>
 #include <geometry_msgs/Twist.h>
 #include <nav_msgs/Odometry.h>
+#include <visualization_msgs/Marker.h>
 
 using namespace std;
 
@@ -30,6 +31,8 @@ class drive {
 
     private:
         ros::Publisher drive2_pub; //!< Create a publisher to set velocities
+        ros::Publisher marker_pub; //!< Create the publisher to plot the path
+
         ros::Subscriber drive2_sub_Laser; //!< Subscriber to read LiDAR data
         ros::Subscriber drive2_sub_Odom; //!< Subscriber to read odometry data
 
@@ -75,7 +78,7 @@ class drive {
 
         bool AngleLocked; //!< Lock the angle
         
-
+        int map_count; //!< Keep track of map points
         
         void laserMsgCallBack(const sensor_msgs::LaserScan::ConstPtr& msg);
         void odomMsgCallBack(const nav_msgs::Odometry::ConstPtr& msg);
@@ -104,6 +107,7 @@ class drive {
 
         void shove();
 
+        void plotPath();
 };
 
 
