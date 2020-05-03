@@ -45,6 +45,9 @@ TEST_CASE("Ensure that angles are normalised to acceptable range", "[single file
     REQUIRE(normalise_angle(10) == 350);
     REQUIRE(normalise_angle(180) == 180);
     REQUIRE(normalise_angle(-40) == 40);
+    REQUIRE(normalise_angle(90) == 270);
+    REQUIRE(normalise_angle(0.0001) == 360);
+    REQUIRE(normalise_angle(-0.0001) == 0);
 }
 
 TEST_CASE("Correctly evaluate difference between angles", "[single file]"){
@@ -63,11 +66,12 @@ TEST_CASE("Assess angle to destination in degrees", "[single file]"){
 }
 
 TEST_CASE("Correctly convert quaternion values to degrees", "[single file]"){
-    REQUIRE(quaternion_to_degrees(0,0,1, 0) == 180);
+    REQUIRE(quaternion_to_degrees(0,0,1,0) == 180);
 }
 
 TEST_CASE("Correctly convert radians to degrees", "[single file]"){
     REQUIRE(rads_to_degrees(1) == 57.29578f);
     REQUIRE(rads_to_degrees(3) == 171.88734f);
     REQUIRE(rads_to_degrees(-2) == -114.59156f);
+    REQUIRE(rads_to_degrees(5) == 286.47891f);
 }

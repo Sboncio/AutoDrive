@@ -11,7 +11,7 @@ using namespace std;
 */
 drive::drive()
 {
-    ros::NodeHandle nh;
+    ros::NodeHandle nh; //!< Create a node handler
 
     drive2_pub = nh.advertise<geometry_msgs::Twist>("cmd_vel", 10); //!< Set the publisher 
     marker_pub = nh.advertise<visualization_msgs::Marker>("visualization_marker", 10); //!< Set the publisher to plot path
@@ -30,9 +30,9 @@ drive::drive()
 
     Goal_X = 0.0; //!< Set the goal X coordinate
     Goal_Y = 0.0; //!< Set the goal Y coordinate
-    target_angle = 0; //
+    target_angle = 0; 
 
-    map_count = 0;
+    map_count = 0; //!< Variable for ID of path plotting
 
     tempAngle = false;
 
@@ -57,17 +57,17 @@ drive::~drive(){
 void drive::laserMsgCallBack(const sensor_msgs::LaserScan::ConstPtr& msg)
 {
 
-    if(!SensorReadings.empty()){
+    if(!SensorReadings.empty()){ //!< Clear vector if needed
         SensorReadings.clear();
     }
 
-    if(!ScanData.empty()){
+    if(!ScanData.empty()){ //!< Clear vector if needed
         ScanData.clear();
     }
 
     for(int i = 359; i >= 0; i -= 1){
 
-        SensorReadings.push_back(msg->ranges.at(i));
+        SensorReadings.push_back(msg->ranges.at(i)); //!< Store raw data
 
     }
 
@@ -78,7 +78,7 @@ void drive::laserMsgCallBack(const sensor_msgs::LaserScan::ConstPtr& msg)
     int MAX_RANGE = 10;
 
     
-
+    //! Store filtered data
     for(int i = 269; i < 360; i++){
         if(!isinf(msg->ranges.at(i))){
             ScanData.push_back(msg->ranges.at(i));
@@ -96,8 +96,8 @@ void drive::laserMsgCallBack(const sensor_msgs::LaserScan::ConstPtr& msg)
     }
     
 
-    Prev_Time = Current_Time;
-    Current_Time = msg->header.stamp.sec;
+    Prev_Time = Current_Time; //!< Set previous time variable
+    Current_Time = msg->header.stamp.sec; //!< Set current time variable
     
 
 }
@@ -109,24 +109,24 @@ void drive::laserMsgCallBack(const sensor_msgs::LaserScan::ConstPtr& msg)
 
 void drive::odomMsgCallBack(const nav_msgs::Odometry::ConstPtr& msg)
 {
-    Current_X = msg->pose.pose.position.x; // Get the x position
-    Current_Y = msg->pose.pose.position.y; // Get the y position
+    Current_X = msg->pose.pose.position.x; //!< Get the x position
+    Current_Y = msg->pose.pose.position.y; //!< Get the y position
 
     
 
-    //Retrieve quaternion values
+    //! Retrieve quaternion values
     double quat0 = msg->pose.pose.orientation.w; 
     double quat1 = msg->pose.pose.orientation.y;
     double quat2 = msg->pose.pose.orientation.x;
     double quat3 = msg->pose.pose.orientation.z;
 
-    // Convert quaternion values to euler values
+    //! Convert quaternion values to euler values
     double Orientation = atan2(2 * (quat0 * quat3 + quat1 * quat2), 1 - 2 * ((quat2 * quat2) + (quat3 * quat3)));
 
-    // Convert the euler radians to degrees
+    //! Convert the euler radians to degrees
     Orientation = Orientation * (180/M_PI);
 
-    // Re-orientate the angles to a simpler format 
+    //! Re-orientate the angles to a simpler format 
     if(Orientation < 0) {
         Orientation += 360.0;
     } 
@@ -140,11 +140,11 @@ void drive::odomMsgCallBack(const nav_msgs::Odometry::ConstPtr& msg)
     }
 
     for(int i = 0; i <= 180; i++){
-        Bubble_Boundary[i] = Linear_Velocity * (Current_Time - Prev_Time) + 0.3;
+        Bubble_Boundary[i] = Linear_Velocity * (Current_Time - Prev_Time) + 0.3; //!< Set the bubble boundary
     }
 
 
-    Current_Theta = Orientation;
+    Current_Theta = Orientation; //!< Save the current theta
     
 }
 
@@ -165,14 +165,14 @@ bool drive::adjustHeading(double CurrentXCoordinate, double CurrentYCoordinate, 
     
     ROS_INFO("Adjusting heading");
     
-    double xDiff = GoalX - CurrentXCoordinate;
-    double yDiff = GoalY - CurrentYCoordinate;
+    double xDiff = GoalX - CurrentXCoordinate; //!< Obtain difference in X coordinates
+    double yDiff = GoalY - CurrentYCoordinate; //!< Obtain difference in Y coordinates
 
     
-    double angle = atan2(yDiff,xDiff) * 180/M_PI;
+    double angle = atan2(yDiff,xDiff) * 180/M_PI; //!< Convert angle to degrees
 
   
-    
+    //! Normalise angle
     if(angle > 0){
         angle = 360 - (abs(angle));
     } 
@@ -181,17 +181,19 @@ bool drive::adjustHeading(double CurrentXCoordinate, double CurrentYCoordinate, 
         angle = abs(angle);
     }
 
+    //! Determine if robot should turn left or right
     float difference = ((float)angle - (float)currentAngle + 540);
     difference = fmod(difference,360.f);
     difference -= 180;
 
-    double min = angle - 4;
-    double max = angle + 4;
+    double min = angle - 4; //!< Set minimum boundary
+    double max = angle + 4; //!< Set maximum boundary
 
     if(min < 0){min += 360;}
     if(max > 360){max -= 360;}
     
 
+    //!< Move to appropriate heading
     if(currentAngle < max && currentAngle > min){
         publishVelocity(0.5,0.0);
         FacingDirection = true; 
@@ -240,12 +242,12 @@ void drive::publishVelocity(double Linear, double Angular)
 int drive::CheckForObstacles()
 {
     ROS_INFO("Checking for obstacles");
-    if(!ScanData.empty()){
+    if(!ScanData.empty()){ //!< Ensure vector is populated
         
 
-        for(int i = 70; i <= 110; i += 10){
+        for(int i = 70; i <= 110; i += 10){ 
             
-            if(ScanData.at(i+1) <= Bubble_Boundary[i+1]){
+            if(ScanData.at(i+1) <= Bubble_Boundary[i+1]){ //!< See if obstacle is within range
                 ROS_INFO("Obstacle detected");
                 return 1;
             }
@@ -259,12 +261,14 @@ int drive::CheckForObstacles()
 */
 bool drive::CheckForDestination(){
     
-    double minimumX = Goal_X - 0.3;
+    //! Create boundary
+    double minimumX = Goal_X - 0.3; 
     double maximumX = Goal_X + 0.3;
 
     double maximumY = Goal_Y + 0.3;
     double minimumY = Goal_Y - 0.3;
 
+    //! Check if robot is within goal boundary
     if((Current_X < maximumY) && (Current_X > minimumY) && (Current_Y < maximumX) && (Current_Y > minimumX)){
         ROS_INFO("Destination reached");
         return true;
@@ -287,19 +291,17 @@ float drive::ComputeReboundAngle()
     vector<float> sensorData;
     vector<int> Location;
 
-    if(!SensorReadings.empty()){
-
-        
+    if(!SensorReadings.empty()){ //!< Ensure vector is populated
 
         float top = 0;
         float bottom = 0;
 
-        for(int i = 270; i >= 0; i -=45){
+        for(int i = 270; i >= 0; i -=45){ //!< Perform a sweep
             top += i * SensorReadings.at(i);
             bottom += SensorReadings.at(i);
         }
 
-        result = top/bottom;
+        result = top/bottom; //!< Calculate rebound angle
         cout << "Result: " << result << endl;
         target_angle = result;
         return result;
@@ -352,7 +354,7 @@ bool drive::GoalVisible()
         double xDiff = Goal_X - Current_X;
         double yDiff = Goal_Y - Current_Y;
 
-        float angle= atan2(yDiff,xDiff);
+        float angle= atan2(yDiff,xDiff); //!< Calculate angle to goal
         angle *= 180/M_PI;
 
         if(angle > 0){
@@ -372,9 +374,9 @@ bool drive::GoalVisible()
 
         //! Get distance to goal (Pythagoras)
         double hypo = pow(xDiff, 2) + pow(yDiff,2);
-        hypo = sqrt(hypo);
+        hypo = sqrt(hypo); //!< Calculate distance to goal
 
-        if(hypo - SensorReadings.at(Relative_Angle) < 0.2){
+        if(hypo - SensorReadings.at(Relative_Angle) < 0.2){ //!< Check if goal can be seen
             return true;
         } else {
             return false;
@@ -398,7 +400,6 @@ void drive::MoveForward()
             publishVelocity(0.0, 0.0);
         } else {
             publishVelocity(Linear_Velocity, 0.0);
-            //ROS_INFO("Moving forward");
         }
     } 
     
@@ -478,19 +479,20 @@ void drive::shove()
 
 void drive::plotPath()
 {
-    visualization_msgs::Marker points; //Create object for points and object for lines
-    points.header.frame_id   = "/map"; //Set the frame_ID to "map"
-    points.header.stamp  = ros::Time::now(); //Set the time header to the current time
-    points.ns =  "path"; //Set the namespace of the objects
-    points.action = visualization_msgs::Marker::ADD; //Ensure new shapes are added, not replaced
+    visualization_msgs::Marker points; //!< Create object for points and object for lines
+    points.header.frame_id   = "/map"; //!< Set the frame_ID to "map"
+    points.header.stamp  = ros::Time::now(); //!< Set the time header to the current time
+    points.ns =  "path"; //!< Set the namespace of the objects
+    points.action = visualization_msgs::Marker::ADD; //!< Ensure new shapes are added, not replaced
 
     points.id = map_count;
     map_count++;
 
-    points.type = visualization_msgs::Marker::POINTS; //Set the object type
-    points.scale.x = 0.25;
-    points.scale.y = 0.25;
+    points.type = visualization_msgs::Marker::POINTS; //!< Set the object type
+    points.scale.x = 0.25; //!< Set size of the point
+    points.scale.y = 0.25; //!< Set size of the point
 
+    //! Set the colour
     points.color.r = 1.0f;
     points.color.g = 0.0f;
     points.color.b = 1.0f;
@@ -501,14 +503,14 @@ void drive::plotPath()
     
     geometry_msgs::Point p1;
 
-    //Set the x and y positions
+    //! Set the x and y positions
     p1.x = xPos;
     p1.y = yPos;
     p1.z = 1;
 
     points.points.push_back(p1);
 
-    marker_pub.publish(points);
+    marker_pub.publish(points); //!< Publish the points to be shown
 }
 
 
@@ -527,7 +529,7 @@ void drive::Debug()
 */
 void drive::Control()
 {
-    if(CheckForObstacles() == 0 && Rebound == false){
+    if(CheckForObstacles() == 0 && Rebound == false){ //!< Ensure that there are no obstacles
 
         if(Adjusting){
             shove();
