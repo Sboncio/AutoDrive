@@ -73,9 +73,6 @@ void drive::laserMsgCallBack(const sensor_msgs::LaserScan::ConstPtr& msg)
 
     }
 
-    if(!ScanData.empty()){
-        ScanData.clear();
-    }
 
     int MAX_RANGE = 10;
 
@@ -274,8 +271,8 @@ bool drive::CheckForDestination(){
     if((Current_X < maximumY) && (Current_X > minimumY) && (Current_Y < maximumX) && (Current_Y > minimumX)){
         ROS_INFO("Destination reached");
         if(!Finalise){
-            length = ros::Time::now() - Start;
-            Finalise = true;
+            length = ros::Time::now() - Start; //!< Calculate duration of journey
+            Finalise = true; //!< Lock the duration
         }
         cout << "Length: " << length << endl;
         return true;
@@ -324,14 +321,16 @@ float drive::ComputeReboundAngle()
 void drive::AdjustAngle(double TargetAngle)      
 {
     ROS_INFO("Adjusting angle");
-    float max = TargetAngle + 3;
-    float min = TargetAngle - 3;
+    float max = TargetAngle + 3; //!< Set maximum boundary
+    float min = TargetAngle - 3; //!< Set minimum boundary
     
+    //! Calculate if system should turn left or right
     float difference = (TargetAngle - (float)Current_Theta + 540);
     difference = fmod(difference,360.f);
     difference -= 180;
     cout << "Target angle: " << TargetAngle << endl;
     
+    //! Check if the system is facing the right direction
     if(Current_Theta > min && Current_Theta < max){
         
         publishVelocity(0.0,0.0);
@@ -358,12 +357,13 @@ bool drive::GoalVisible()
 {
     ROS_INFO("Checking of goal is visible");
     if(!SensorReadings.empty()){
-        double xDiff = Goal_X - Current_X;
-        double yDiff = Goal_Y - Current_Y;
+        double xDiff = Goal_X - Current_X; //!< Calculate x difference
+        double yDiff = Goal_Y - Current_Y; //!< Calculate y difference
 
         float angle= atan2(yDiff,xDiff); //!< Calculate angle to goal
-        angle *= 180/M_PI;
+        angle *= 180/M_PI; //!< Convert degrees to radians
 
+        //! Normalise angles
         if(angle > 0){
             angle = 360 - (abs(angle));
         } 
@@ -428,7 +428,7 @@ void drive::stopMoving(){
 */
 bool drive::checkIfMoving()
 {
-    if(Linear_Velocity < 0.2){
+    if(Linear_Velocity < 0.1){
         return false;
     } else {
         return true;
