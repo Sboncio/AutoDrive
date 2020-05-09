@@ -7,6 +7,8 @@
 #include <cmath>
 #include <time.h>
 
+#include <fstream>
+
 #include <sensor_msgs/LaserScan.h>
 #include <geometry_msgs/Twist.h>
 #include <nav_msgs/Odometry.h>
@@ -77,8 +79,15 @@ class drive {
         bool Rebound; //!< System is moving towards an area clear of obstacles
 
         bool AngleLocked; //!< Lock the angle
+
+        bool Finalise;
         
         int map_count; //!< Keep track of map points
+
+        
+
+        ros::Time Start;
+        ros::Duration length;
         
         void laserMsgCallBack(const sensor_msgs::LaserScan::ConstPtr& msg);
         void odomMsgCallBack(const nav_msgs::Odometry::ConstPtr& msg);
@@ -108,6 +117,7 @@ class drive {
         void shove();
 
         void plotPath();
+
 };
 
 

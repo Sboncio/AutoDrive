@@ -11,6 +11,7 @@ int main(int argc, char **argv)
 
     while(ros::ok()) //!< Begin the loop of the system
     {
+        
         //control.Debug();
         control.Control();
         loop_rate.sleep();

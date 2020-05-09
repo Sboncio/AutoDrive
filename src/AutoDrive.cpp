@@ -23,7 +23,7 @@ drive::drive()
     //! Set flags
     CorrectHeading = false;
     FacingDirection = false;
-    Tuning = 3;
+    Tuning = 0.3;
     Angular_Velocity = 0.0;
     Linear_Velocity = 0.0;
     publishVelocity(2.2, 0.4); //!< Set initial velocity
@@ -36,8 +36,10 @@ drive::drive()
 
     tempAngle = false;
 
-    Adjusting = Moving = Avoiding = Arrived = Rebound = AngleLocked = false;
+    Adjusting = Moving = Avoiding = Arrived = Rebound = AngleLocked = Finalise =  false;
     
+   
+    Start = ros::Time::now();
 }
 
 /*!
@@ -140,7 +142,7 @@ void drive::odomMsgCallBack(const nav_msgs::Odometry::ConstPtr& msg)
     }
 
     for(int i = 0; i <= 180; i++){
-        Bubble_Boundary[i] = Linear_Velocity * (Current_Time - Prev_Time) + 0.3; //!< Set the bubble boundary
+        Bubble_Boundary[i] = Linear_Velocity * (Current_Time - Prev_Time) + Tuning; //!< Set the bubble boundary
     }
 
 
@@ -201,10 +203,10 @@ bool drive::adjustHeading(double CurrentXCoordinate, double CurrentYCoordinate, 
         return true;
     } else {
         if(difference < 0){
-            publishVelocity(0.0,0.2);
+            publishVelocity(0.0,0.3);
             FacingDirection = false;
         } else {
-            publishVelocity(0.0,-0.2);
+            publishVelocity(0.0,-0.3);
             FacingDirection = false;
         }
         return false;
@@ -262,15 +264,20 @@ int drive::CheckForObstacles()
 bool drive::CheckForDestination(){
     
     //! Create boundary
-    double minimumX = Goal_X - 0.3; 
-    double maximumX = Goal_X + 0.3;
+    double minimumX = Goal_X - 0.5; 
+    double maximumX = Goal_X + 0.5;
 
-    double maximumY = Goal_Y + 0.3;
-    double minimumY = Goal_Y - 0.3;
+    double maximumY = Goal_Y + 0.5;
+    double minimumY = Goal_Y - 0.5;
 
     //! Check if robot is within goal boundary
     if((Current_X < maximumY) && (Current_X > minimumY) && (Current_Y < maximumX) && (Current_Y > minimumX)){
         ROS_INFO("Destination reached");
+        if(!Finalise){
+            length = ros::Time::now() - Start;
+            Finalise = true;
+        }
+        cout << "Length: " << length << endl;
         return true;
     } else {
         return false;
@@ -286,7 +293,7 @@ float drive::ComputeReboundAngle()
     ROS_INFO("Computing rebound angle");
     double top = 0;
     double bottom = 0;
-    float result;
+    float result = 0;
 
     vector<float> sensorData;
     vector<int> Location;
@@ -335,9 +342,9 @@ void drive::AdjustAngle(double TargetAngle)
         Adjusting = true;
     } else {
         if(difference < 0){
-            publishVelocity(0.0, 0.5);
+            publishVelocity(0.0, 0.3);
         } else {
-            publishVelocity(0.0,-0.5);
+            publishVelocity(0.0,-0.3);
         }
     }
     
@@ -514,13 +521,14 @@ void drive::plotPath()
 }
 
 
+
 /*!
     \fn void drive::Debug()
     \brief Function used for testing
 */
 void drive::Debug()
 { 
-    
+  
 }
 
 /*!
