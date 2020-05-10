@@ -297,6 +297,7 @@ float drive::ComputeReboundAngle()
 
     if(!SensorReadings.empty()){ //!< Ensure vector is populated
 
+        
         float top = 0;
         float bottom = 0;
 
@@ -306,6 +307,13 @@ float drive::ComputeReboundAngle()
         }
 
         result = top/bottom; //!< Calculate rebound angle
+
+        if(isnan(result)){
+            
+
+        result = Current_Theta; //!< Calculate rebound angle
+        }
+
         cout << "Result: " << result << endl;
         target_angle = result;
         return result;
