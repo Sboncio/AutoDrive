@@ -63,10 +63,12 @@ TEST_CASE("Assess angle to destination in degrees", "[single file]"){
     REQUIRE(target_angle(0,3) == 90);
     REQUIRE(target_angle(0, -3) == -90);
     REQUIRE(target_angle(2,-2) == -45);
+    REQUIRE(target_angle(-3,-3) == -135);
 }
 
 TEST_CASE("Correctly convert quaternion values to degrees", "[single file]"){
     REQUIRE(quaternion_to_degrees(0,0,1,0) == 180);
+	REQUIRE(quaternion_to_degrees(0,0,2,1) == 180);
 }
 
 TEST_CASE("Correctly convert radians to degrees", "[single file]"){

@@ -310,7 +310,6 @@ float drive::ComputeReboundAngle()
 
         if(isnan(result)){
             
-
         result = Current_Theta; //!< Calculate rebound angle
         }
 
