@@ -15,9 +15,11 @@ drive::drive()
 
     drive2_pub = nh.advertise<geometry_msgs::Twist>("cmd_vel", 10); //!< Set the publisher 
     marker_pub = nh.advertise<visualization_msgs::Marker>("visualization_marker", 10); //!< Set the publisher to plot path
+    state_pub = nh.advertise<std_msgs::String>("state",10);
 
     drive2_sub_Laser = nh.subscribe("scan",100, &drive::laserMsgCallBack, this); //!< Subscribe to LiDAR
     drive2_sub_Odom = nh.subscribe("odom", 100, &drive::odomMsgCallBack, this); //!< Subscribe to odometry
+    drive2_interface = nh.subscribe("interface", 100, &drive::interfaceCallBack, this); //!< Subscribe to interface
 
 
     //! Set flags
@@ -28,15 +30,17 @@ drive::drive()
     Linear_Velocity = 0.0;
     publishVelocity(2.2, 0.4); //!< Set initial velocity
 
-    Goal_X = 0.0; //!< Set the goal X coordinate
-    Goal_Y = 0.0; //!< Set the goal Y coordinate
+    Goal_X_ = 0; //!< Set the goal X coordinate
+    Goal_Y = 0; //!< Set the goal Y coordinate
     target_angle = 0; 
 
     map_count = 0; //!< Variable for ID of path plotting
 
+    current_state = "Idle";
+
     tempAngle = false;
 
-    Adjusting = Moving = Avoiding = Arrived = Rebound = AngleLocked = Finalise =  false;
+    Adjusting = Moving = Avoiding = Arrived = Rebound = AngleLocked = Finalise = start_trigger = false;
     
    
     Start = ros::Time::now();
@@ -101,6 +105,18 @@ void drive::laserMsgCallBack(const sensor_msgs::LaserScan::ConstPtr& msg)
 
 }
 
+void drive::interfaceCallBack(const geometry_msgs::Vector3::ConstPtr& msg)
+{
+    
+    Goal_X_ = msg->x;
+    Goal_Y = msg->y;
+    start_trigger = msg->z;
+
+    if(!start_trigger){
+        publishVelocity(0.f,0.f);
+    }
+}
+
 /*!
     \fn void drive::odomMsgCallBack(const nav_msgs::Odometry::ConstPtr& msg)
     \brief Function that is called when odometry data is available
@@ -108,8 +124,8 @@ void drive::laserMsgCallBack(const sensor_msgs::LaserScan::ConstPtr& msg)
 
 void drive::odomMsgCallBack(const nav_msgs::Odometry::ConstPtr& msg)
 {
-    Current_X = msg->pose.pose.position.x; //!< Get the x position
-    Current_Y = msg->pose.pose.position.y; //!< Get the y position
+    Current_X_ = msg->pose.pose.position.x; //!< Get the x position
+    Current_Y_ = msg->pose.pose.position.y; //!< Get the y position
 
     
 
@@ -143,7 +159,7 @@ void drive::odomMsgCallBack(const nav_msgs::Odometry::ConstPtr& msg)
     }
 
 
-    Current_Theta = Orientation; //!< Save the current theta
+    Current_Theta_ = Orientation; //!< Save the current theta
     
 }
 
@@ -161,13 +177,12 @@ void drive::odomMsgCallBack(const nav_msgs::Odometry::ConstPtr& msg)
 */
 bool drive::adjustHeading(double CurrentXCoordinate, double CurrentYCoordinate, float GoalX, float GoalY, double currentAngle)
 {
-    
-    ROS_INFO("Adjusting heading");
+
     
     double xDiff = GoalX - CurrentXCoordinate; //!< Obtain difference in X coordinates
     double yDiff = GoalY - CurrentYCoordinate; //!< Obtain difference in Y coordinates
 
-    
+    current_state = "Adjusting";
     double angle = atan2(yDiff,xDiff) * 180/M_PI; //!< Convert angle to degrees
 
   
@@ -234,25 +249,32 @@ void drive::publishVelocity(double Linear, double Angular)
     drive2_pub.publish(msg); //!< Publish message
 }
 
+void drive::publishState(string state)
+{
+    std_msgs::String msg;
+    msg.data = state;
+    state_pub.publish(msg);
+}
+
 /*! 
     \fn int drive::CheckForObstacles()
     \brief Function to check if there are any obstacles detected
 */
 int drive::CheckForObstacles()
 {
-    ROS_INFO("Checking for obstacles");
+    
     if(!ScanData.empty()){ //!< Ensure vector is populated
         
 
         for(int i = 70; i <= 110; i += 10){ 
             
             if(ScanData.at(i+1) <= Bubble_Boundary[i+1]){ //!< See if obstacle is within range
-                ROS_INFO("Obstacle detected");
                 return 1;
             }
         }
         return 0;
     }
+    return 0;
 }
 /*!
     \fn bool drive::CheckForDestination()
@@ -261,20 +283,18 @@ int drive::CheckForObstacles()
 bool drive::CheckForDestination(){
     
     //! Create boundary
-    double minimumX = Goal_X - 0.5; 
-    double maximumX = Goal_X + 0.5;
+    double minimumX = Goal_X_ - 0.5; 
+    double maximumX = Goal_X_ + 0.5;
 
     double maximumY = Goal_Y + 0.5;
     double minimumY = Goal_Y - 0.5;
 
     //! Check if robot is within goal boundary
-    if((Current_X < maximumY) && (Current_X > minimumY) && (Current_Y < maximumX) && (Current_Y > minimumX)){
-        ROS_INFO("Destination reached");
+    if((Current_X_ < maximumY) && (Current_X_ > minimumY) && (Current_Y_ < maximumX) && (Current_Y_ > minimumX)){
         if(!Finalise){
             length = ros::Time::now() - Start; //!< Calculate duration of journey
             Finalise = true; //!< Lock the duration
         }
-        cout << "Length: " << length << endl;
         return true;
     } else {
         return false;
@@ -287,7 +307,6 @@ bool drive::CheckForDestination(){
 */
 float drive::ComputeReboundAngle()
 {
-    ROS_INFO("Computing rebound angle");
     double top = 0;
     double bottom = 0;
     float result = 0;
@@ -310,13 +329,14 @@ float drive::ComputeReboundAngle()
 
         if(isnan(result)){
             
-        result = Current_Theta; //!< Calculate rebound angle
+        result = Current_Theta_; //!< Calculate rebound angle
         }
 
-        cout << "Result: " << result << endl;
         target_angle = result;
+        current_state = "Rebounding";
         return result;
     }
+    return 0;
 }
 
 /*!
@@ -327,22 +347,20 @@ float drive::ComputeReboundAngle()
 */
 void drive::AdjustAngle(double TargetAngle)      
 {
-    ROS_INFO("Adjusting angle");
     float max = TargetAngle + 3; //!< Set maximum boundary
     float min = TargetAngle - 3; //!< Set minimum boundary
     
     //! Calculate if system should turn left or right
-    float difference = (TargetAngle - (float)Current_Theta + 540);
+    float difference = (TargetAngle - (float)Current_Theta_ + 540);
     difference = fmod(difference,360.f);
     difference -= 180;
-    cout << "Target angle: " << TargetAngle << endl;
     
     //! Check if the system is facing the right direction
-    if(Current_Theta > min && Current_Theta < max){
+    if(Current_Theta_ > min && Current_Theta_ < max){
         
         publishVelocity(0.0,0.0);
-        Avoid_X = Current_X;
-        Avoid_Y = Current_Y;
+        Avoid_X = Current_X_;
+        Avoid_Y = Current_Y_;
         AngleLocked = false;
         Rebound = false;
         Adjusting = true;
@@ -362,10 +380,9 @@ void drive::AdjustAngle(double TargetAngle)
 */
 bool drive::GoalVisible()
 {
-    ROS_INFO("Checking of goal is visible");
     if(!SensorReadings.empty()){
-        double xDiff = Goal_X - Current_X; //!< Calculate x difference
-        double yDiff = Goal_Y - Current_Y; //!< Calculate y difference
+        double xDiff = Goal_X_ - Current_X_; //!< Calculate x difference
+        double yDiff = Goal_Y - Current_Y_; //!< Calculate y difference
 
         float angle= atan2(yDiff,xDiff); //!< Calculate angle to goal
         angle *= 180/M_PI; //!< Convert degrees to radians
@@ -379,7 +396,7 @@ bool drive::GoalVisible()
             angle = abs(angle);
         }
         
-        float Adjustment_Angle = 360 - Current_Theta;
+        float Adjustment_Angle = 360 - Current_Theta_;
         float Relative_Angle = angle + Adjustment_Angle;
         Relative_Angle = round(Relative_Angle);
 
@@ -398,6 +415,7 @@ bool drive::GoalVisible()
        
 
     }
+    return false;
 }
 
 /*!
@@ -406,7 +424,6 @@ bool drive::GoalVisible()
 */
 void drive::MoveForward()
 {
-    ROS_INFO("Moving forward");
     if(CheckForObstacles() == 0){
         Linear_Velocity = 0.2;
 
@@ -416,7 +433,7 @@ void drive::MoveForward()
             publishVelocity(Linear_Velocity, 0.0);
         }
     } 
-    
+    current_state = "Moving";
 }
 /*!
     \fn void drive::stopMoving()
@@ -425,7 +442,6 @@ void drive::MoveForward()
     Set the systems angular and linear velocities to 0.0
 */
 void drive::stopMoving(){
-    ROS_INFO("Stopping movement");
     publishVelocity(0.0, 0.0);
 }
 
@@ -447,9 +463,8 @@ bool drive::checkIfMoving()
     \brief Checks if the system orientation is correct to reach the destination
 */
 bool drive::checkOnTarget(){
-    ROS_INFO("Checking if system is on target");
-    double xDiff = Goal_X - Current_X;
-    double yDiff = Goal_Y - Current_Y;
+    double xDiff = Goal_X_ - Current_X_;
+    double yDiff = Goal_Y - Current_Y_;
     
     double angle = atan2(yDiff,xDiff) * 180/M_PI;
 
@@ -466,7 +481,7 @@ bool drive::checkOnTarget(){
     double min = angle - 4;
     double max = angle + 4;
 
-    if(Current_Theta < max && Current_Theta > min){
+    if(Current_Theta_ < max && Current_Theta_ > min){
         return true;
     } else {
         return false;
@@ -479,9 +494,8 @@ bool drive::checkOnTarget(){
 */
 void drive::shove()
 {
-    ROS_INFO("Moving forward");
-    float xDiff = fabs(Current_X - Avoid_X);
-    float yDiff = fabs(Current_Y - Avoid_Y);
+    float xDiff = fabs(Current_X_ - Avoid_X);
+    float yDiff = fabs(Current_Y_ - Avoid_Y);
     
 
     if(yDiff < 0.05 || xDiff < 0.05){
@@ -512,8 +526,8 @@ void drive::plotPath()
     points.color.b = 1.0f;
     points.color.a = 1.0f;
 
-    float xPos = Current_X;
-    float yPos = Current_Y;
+    float xPos = Current_X_;
+    float yPos = Current_Y_;
     
     geometry_msgs::Point p1;
 
@@ -544,42 +558,47 @@ void drive::Debug()
 */
 void drive::Control()
 {
-    if(CheckForObstacles() == 0 && Rebound == false){ //!< Ensure that there are no obstacles
+    if(start_trigger){
+        if(CheckForObstacles() == 0 && Rebound == false){ //!< Ensure that there are no obstacles
 
-        if(Adjusting){
-            shove();
-        } else {
-        
-            if(!FacingDirection){
-                adjustHeading(Current_X, Current_Y, Goal_X, Goal_Y, Current_Theta);
-            } else if(Avoiding == false) {
-                if(GoalVisible() == true){
-                    if(checkOnTarget() == false){
-                        adjustHeading(Current_X, Current_Y, Goal_X, Goal_Y, Current_Theta);
+            if(Adjusting){
+                shove();
+            } else {
+            
+                if(!FacingDirection){
+                    adjustHeading(Current_X_, Current_Y_, Goal_X_, Goal_Y, Current_Theta_);
+                } else if(Avoiding == false) {
+                    if(GoalVisible() == true){
+                        if(checkOnTarget() == false){
+                            adjustHeading(Current_X_, Current_Y_, Goal_X_, Goal_Y, Current_Theta_);
+                        } else {
+                            MoveForward();
+                        }
                     } else {
                         MoveForward();
                     }
-                } else {
-                    MoveForward();
                 }
             }
-        }
-        
-    } else {
-        if(!AngleLocked){
-            ComputeReboundAngle();
-            AngleLocked = true;
-            Rebound = true;
-        }
-        AdjustAngle(target_angle);
+            
+        } else {
+            if(!AngleLocked){
+                ComputeReboundAngle();
+                AngleLocked = true;
+                Rebound = true;
+            }
+            AdjustAngle(target_angle);
 
-        
+            
+        }
+    }
+    if(start_trigger){
+        if(CheckForDestination()){
+            stopMoving();
+        } else {
+            plotPath();
+        }
     }
 
-    if(CheckForDestination()){
-        stopMoving();
-    } else {
-        plotPath();
-    }
+    publishState(current_state);
 }
 

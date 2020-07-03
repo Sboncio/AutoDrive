@@ -1,0 +1,7 @@
+<launch>
+	<node pkg="auto_drive" type="UserInterface" name="UserInterface_node" output="screen">
+	</node>
+	<node pkg="auto_drive" type="auto_drive" name="auto_drive_node" output="screen">
+   	</node>
+	
+</launch>

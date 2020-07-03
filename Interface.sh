@@ -1,0 +1,2 @@
+export TURTLEBOT3_MODEL=waffle
+roslaunch auto_drive UserInterface.launch

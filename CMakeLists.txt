@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(AutoDrive)
+project(auto_drive)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
 # add_compile_options(-std=c++11)
@@ -10,6 +10,7 @@ project(AutoDrive)
 find_package(catkin REQUIRED COMPONENTS
   geometry_msgs
   roscpp
+  rospy
   sensor_msgs
   std_msgs
 )
@@ -108,7 +109,7 @@ find_package(Boost REQUIRED COMPONENTS system)
 catkin_package(
    INCLUDE_DIRS include
    LIBRARIES drive2
-   CATKIN_DEPENDS geometry_msgs roscpp sensor_msgs std_msgs
+   CATKIN_DEPENDS geometry_msgs roscpp rospy sensor_msgs std_msgs
    DEPENDS system_lib
 )
 
@@ -119,7 +120,7 @@ catkin_package(
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 include_directories(
-include/AutoDrive
+include/auto_drive
 include ${catkin_INCLUDE_DIRS}
 )
 
@@ -136,7 +137,7 @@ include ${catkin_INCLUDE_DIRS}
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-add_executable(${PROJECT_NAME} src/AutoDrive.cpp src/main.cpp)
+add_executable(${PROJECT_NAME} src/auto_drive.cpp src/main.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -149,7 +150,7 @@ add_executable(${PROJECT_NAME} src/AutoDrive.cpp src/main.cpp)
 add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
- target_link_libraries(AutoDrive
+ target_link_libraries(auto_drive
    ${catkin_LIBRARIES}
  )
 

@@ -6,11 +6,14 @@
 #include <math.h>
 #include <cmath>
 #include <time.h>
+#include <string>
 
 #include <fstream>
 
+#include <std_msgs/String.h>
 #include <sensor_msgs/LaserScan.h>
 #include <geometry_msgs/Twist.h>
+#include <geometry_msgs/Vector3.h>
 #include <nav_msgs/Odometry.h>
 #include <visualization_msgs/Marker.h>
 
@@ -34,9 +37,11 @@ class drive {
     private:
         ros::Publisher drive2_pub; //!< Create a publisher to set velocities
         ros::Publisher marker_pub; //!< Create the publisher to plot the path
+        ros::Publisher state_pub;
 
         ros::Subscriber drive2_sub_Laser; //!< Subscriber to read LiDAR data
         ros::Subscriber drive2_sub_Odom; //!< Subscriber to read odometry data
+        ros::Subscriber drive2_interface;
 
         int degreeOfSeparation = 18; //!< degrees between lidar ranges
         std::vector<float> SensorReadings; //!< Pure sensor data
@@ -44,13 +49,14 @@ class drive {
 
         float Bubble_Boundary[181]; //!< The boundaries for the bubble rebound algorithm
         bool moving;
+        bool start_trigger;
 
-        float Current_X; //!< Current X coordinate of the system.
-        float Current_Y; //!< Current Y coordinate of the system.
-        double Current_Theta; //!< Current angle that the system is facing
+        float Current_X_; //!< Current X coordinate of the system.
+        float Current_Y_; //!< Current Y coordinate of the system.
+        double Current_Theta_; //!< Current angle that the system is facing
         double Target; //!< Target angle to reach
 
-        float Goal_X; //!< Goal X coordinate
+        float Goal_X_; //!< Goal X coordinate
         float Goal_Y; //!< Goal Y coordinate
 
         float Avoid_X; //!< X coordinate of detected obstacle
@@ -84,6 +90,8 @@ class drive {
         
         int map_count; //!< Keep track of map points
 
+        string current_state;
+
         
 
         ros::Time Start;
@@ -91,10 +99,12 @@ class drive {
         
         void laserMsgCallBack(const sensor_msgs::LaserScan::ConstPtr& msg);
         void odomMsgCallBack(const nav_msgs::Odometry::ConstPtr& msg);
+        void interfaceCallBack(const geometry_msgs::Vector3::ConstPtr& msg);
 
         bool adjustHeading(double CurrentXCoordinate, double CurrentYCoordinate, float GoalX, float GoalY, double currentAngle);
 
         void publishVelocity(double Linear, double Angular);
+        void publishState(string state);
 
         int CheckForObstacles();
 
