@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package format="2">
   <name>auto_drive</name>
-  <version>0.1.0</version>
+  <version>0.1.1</version>
   <description>This program is a very basic adaption of the bubble rebound algorithm on a turtlebot3 waffle (pi). It was created using ROS with C++ for the navigation system, and python for the user interface. I cannot state enough that this is a work in progress, I plan to keep woring on it in my spare time.</description>
 
   <maintainer email="samuelasquith@btinternet.com">sam</maintainer>
