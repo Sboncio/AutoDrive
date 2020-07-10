@@ -41,6 +41,8 @@ def launch_simulation():
         terminal = "konsole"
     elif os.environ.get('GNOME_DESKTOP_SESSION_ID') == 'true':
         terminal = "gnome-terminal"
+    else:
+        terminal = "gnome-terminal"
 
     command = terminal + " -e roslaunch turtlebot3_gazebo turtlebot3_world.launch &"
     os.system(command)
